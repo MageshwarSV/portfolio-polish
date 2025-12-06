@@ -1,129 +1,243 @@
-import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
-import { Code2, Bot, Cpu, Workflow } from "lucide-react";
+import { motion } from "framer-motion";
+import { useRef, useState } from "react";
+import { aboutContent, personalInfo, certifications } from "@/data/storytellingData";
+import { Code2, Zap, MapPin, Briefcase, GraduationCap, Award, Sparkles, TrendingUp } from "lucide-react";
+import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
-const highlights = [
-  {
-    icon: Code2,
-    title: "Full-Stack Development",
-    description: "Building responsive web apps with modern frameworks",
-  },
-  {
-    icon: Bot,
-    title: "AI Automation",
-    description: "Creating intelligent workflows with n8n & Flowise",
-  },
-  {
-    icon: Cpu,
-    title: "IoT Solutions",
-    description: "Hardware meets software for smart systems",
-  },
-  {
-    icon: Workflow,
-    title: "Process Optimization",
-    description: "Reducing manual work by 90% through automation",
-  },
-];
-
+// Spotify Wrapped / Personal Dashboard Style About Section
 const StoryAbout = () => {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"],
-  });
+  const ref = useRef<HTMLDivElement>(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const animationConfig = useAnimationConfig();
 
-  const y = useTransform(scrollYProgress, [0, 1], [100, -100]);
+  const stats = [
+    { label: "Years Building", value: "3+", icon: Code2, color: "from-green-500 to-emerald-500" },
+    { label: "Projects Shipped", value: "15+", icon: Zap, color: "from-purple-500 to-pink-500" },
+    { label: "Hours Automated", value: "10K+", icon: TrendingUp, color: "from-orange-500 to-red-500" },
+    { label: "Coffee Consumed", value: "∞", icon: Sparkles, color: "from-yellow-500 to-orange-500" },
+  ];
+
+  const topSkills = [
+    { name: "AI Automation", percentage: 95, color: "#00d9ff" },
+    { name: "Full-Stack Dev", percentage: 90, color: "#a855f7" },
+    { name: "IoT Solutions", percentage: 88, color: "#22c55e" },
+  ];
 
   return (
-    <section ref={ref} className="relative py-32 overflow-hidden">
-      {/* Animated Background Line */}
-      <motion.div
-        className="absolute left-1/2 top-0 w-px h-full bg-gradient-to-b from-transparent via-primary/50 to-transparent"
-        style={{ y }}
-      />
-
+    <section ref={ref} id="about" className="relative py-24 overflow-hidden">
       <div className="container-custom">
-        {/* Chapter Indicator */}
+        {/* Chapter header */}
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
+          initial={{ opacity: 0, x: -30 }}
           whileInView={{ opacity: 1, x: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-          className="flex items-center gap-4 mb-16"
+          viewport={{ once: false, margin: "-50px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="flex items-center gap-4 mb-12"
         >
-          <span className="text-primary font-display text-6xl font-bold opacity-20">01</span>
+          <span className="text-primary font-display text-5xl md:text-6xl font-bold opacity-20">01</span>
           <div>
             <span className="text-primary text-sm uppercase tracking-widest">Chapter One</span>
-            <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground">About Me</h2>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-foreground">About Me</h2>
           </div>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-16 items-center">
-          {/* Story Content */}
+        {/* Dashboard Grid */}
+        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+
+          {/* Main Profile Card - Spotify Style */}
           <motion.div
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="space-y-6"
+            viewport={{ once: false }}
+            transition={{ duration: 0.5 }}
+            className="md:col-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-accent/10 to-background border border-border/50 p-8"
           >
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              I'm a <span className="text-primary font-medium">B.Tech IT student</span> with a passion for turning complex problems into elegant digital solutions. My journey began with curiosity about how things work, leading me deep into the worlds of{" "}
-              <span className="text-foreground font-medium">software development, AI, and embedded systems</span>.
-            </p>
-            
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              Currently at <span className="text-primary font-medium">WorkBooster AI</span>, I architect automation pipelines that save businesses countless hours. I believe in writing code that's not just functional, but{" "}
-              <span className="text-accent font-medium">elegant and maintainable</span>.
-            </p>
+            {/* Decorative gradient blob - Only on desktop */}
+            {animationConfig.enableComplexAnimations && (
+              <>
+                <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-primary/30 blur-3xl" />
+                <div className="absolute -bottom-20 -left-20 w-48 h-48 rounded-full bg-accent/30 blur-3xl" />
+              </>
+            )}
 
-            <p className="text-lg text-muted-foreground leading-relaxed">
-              From <span className="text-foreground font-medium">smart agriculture systems</span> to{" "}
-              <span className="text-foreground font-medium">AI-powered security solutions</span>, I love building technology that makes a real-world impact.
-            </p>
-
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-6 pt-8">
-              {[
-                { value: "5+", label: "Projects Shipped" },
-                { value: "3+", label: "Years Coding" },
-                { value: "90%", label: "Automation Rate" },
-              ].map((stat, index) => (
+            <div className="relative z-10">
+              {/* Profile Header */}
+              <div className="flex items-center gap-6 mb-8">
                 <motion.div
-                  key={stat.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: index * 0.1 }}
-                  className="text-center"
+                  whileHover={{ scale: 1.05, rotate: 3 }}
+                  className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-accent p-1"
                 >
-                  <div className="font-display text-3xl md:text-4xl font-bold text-gradient">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
+                  <div className="w-full h-full rounded-xl bg-background flex items-center justify-center overflow-hidden">
+                    <img
+                      src={personalInfo.profileImage}
+                      alt={personalInfo.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
                 </motion.div>
-              ))}
+                <div>
+                  <motion.h3
+                    className="font-display text-3xl font-bold text-foreground"
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: false }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {personalInfo.name}
+                  </motion.h3>
+                  <p className="text-primary font-medium">{personalInfo.title}</p>
+                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" /> {personalInfo.location}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Briefcase className="w-3 h-3" /> {personalInfo.currentCompany}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bio */}
+              <motion.p
+                className="text-muted-foreground mb-6 text-lg leading-relaxed"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                viewport={{ once: false }}
+                transition={{ delay: 0.3 }}
+              >
+                {aboutContent.intro}
+              </motion.p>
+
+              {/* Top Skills - Spotify style bars */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Top Skills</h4>
+                {topSkills.map((skill, index) => (
+                  <motion.div
+                    key={skill.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: false }}
+                    transition={{ delay: 0.3 + index * 0.1 }}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-foreground font-medium">{index + 1}. {skill.name}</span>
+                      <span className="text-xs text-muted-foreground">{skill.percentage}%</span>
+                    </div>
+                    <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ backgroundColor: skill.color }}
+                        initial={{ width: 0 }}
+                        whileInView={{ width: `${skill.percentage}%` }}
+                        viewport={{ once: false }}
+                        transition={{ duration: 0.8, delay: 0.4 + index * 0.1 }}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </motion.div>
 
-          {/* Highlight Cards */}
-          <div className="grid grid-cols-2 gap-4">
-            {highlights.map((item, index) => (
+          {/* Stats Cards - Right Column */}
+          <div className="space-y-4">
+            {stats.map((stat, index) => (
               <motion.div
-                key={item.title}
-                initial={{ opacity: 0, y: 30, scale: 0.9 }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.15, duration: 0.5 }}
-                whileHover={{ y: -5, scale: 1.02 }}
-                className="glass-card p-6 group cursor-default"
+                key={stat.label}
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: false }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+                onMouseEnter={() => setHoveredCard(index)}
+                onMouseLeave={() => setHoveredCard(null)}
+                className="relative overflow-hidden rounded-2xl p-5 bg-secondary/30 border border-border/50 group cursor-pointer"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                  <item.icon className="w-6 h-6 text-primary" />
+                <motion.div
+                  className={`absolute inset-0 bg-gradient-to-r ${stat.color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
+                />
+                <div className="relative z-10 flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
+                    <stat.icon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <motion.span
+                      className="text-2xl font-bold text-foreground"
+                      animate={{ scale: hoveredCard === index ? 1.1 : 1 }}
+                    >
+                      {stat.value}
+                    </motion.span>
+                    <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  </div>
                 </div>
-                <h3 className="font-display font-semibold text-foreground mb-2">{item.title}</h3>
-                <p className="text-sm text-muted-foreground">{item.description}</p>
               </motion.div>
             ))}
           </div>
+
+          {/* Highlights Cards */}
+          <div className="md:col-span-3 grid md:grid-cols-4 gap-4">
+            {aboutContent.highlights.map((item, index) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false, margin: "-30px" }}
+                transition={{ duration: 0.4, delay: index * 0.1, ease: "easeOut" }}
+                whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                className="glass-card p-5 text-center group"
+              >
+                <div className="w-12 h-12 mx-auto rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
+                  <item.icon className="w-6 h-6 text-primary" />
+                </div>
+                <h4 className="font-semibold text-foreground mb-1">{item.title}</h4>
+                <p className="text-xs text-muted-foreground mb-2">{item.description}</p>
+                <span className="text-primary font-bold">{item.stat}</span>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Education & Certifications Row */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: false }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="md:col-span-3 grid md:grid-cols-2 gap-6"
+          >
+            {/* Education */}
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center">
+                  <GraduationCap className="w-5 h-5 text-accent" />
+                </div>
+                <h4 className="font-display font-semibold text-foreground">Education</h4>
+              </div>
+              <p className="text-foreground font-medium">{personalInfo.education}</p>
+              <p className="text-sm text-muted-foreground">Information Technology</p>
+            </div>
+
+            {/* Certifications */}
+            <div className="glass-card p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
+                  <Award className="w-5 h-5 text-yellow-500" />
+                </div>
+                <h4 className="font-display font-semibold text-foreground">Certifications</h4>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {certifications.map((cert) => (
+                  <span
+                    key={cert.title}
+                    className="px-3 py-1 text-xs rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400"
+                  >
+                    {cert.title}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

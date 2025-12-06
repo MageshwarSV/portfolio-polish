@@ -1,21 +1,13 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-
-const chapters = [
-  { id: "hero", label: "Home", number: "00" },
-  { id: "about", label: "About", number: "01" },
-  { id: "experience", label: "Journey", number: "02" },
-  { id: "skills", label: "Skills", number: "03" },
-  { id: "projects", label: "Work", number: "04" },
-  { id: "contact", label: "Contact", number: "05" },
-];
+import { chapters } from "@/data/storytellingData";
 
 const StoryNavigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
   const { scrollYProgress } = useScroll();
-  
+
   const backgroundOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 1]);
 
   useEffect(() => {
@@ -57,7 +49,7 @@ const StoryNavigation = () => {
           className="absolute inset-0 bg-background/80 backdrop-blur-xl border-b border-border/50"
           style={{ opacity: backgroundOpacity }}
         />
-        
+
         <nav className="container-custom relative">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
@@ -67,10 +59,10 @@ const StoryNavigation = () => {
                 e.preventDefault();
                 scrollToSection("hero");
               }}
-              className="font-display text-2xl font-bold text-gradient"
+              className="font-display text-2xl font-bold text-gradient whitespace-nowrap"
               whileHover={{ scale: 1.05 }}
             >
-              M.SV
+              S V
             </motion.a>
 
             {/* Desktop Links */}
@@ -79,11 +71,10 @@ const StoryNavigation = () => {
                 <motion.button
                   key={chapter.id}
                   onClick={() => scrollToSection(chapter.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${
-                    activeSection === chapter.id
-                      ? "text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors relative ${activeSection === chapter.id
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                    }`}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -115,14 +106,14 @@ const StoryNavigation = () => {
       {/* Mobile Menu */}
       <motion.div
         initial={false}
-        animate={{ 
+        animate={{
           opacity: isOpen ? 1 : 0,
           pointerEvents: isOpen ? "auto" : "none"
         }}
         className="fixed inset-0 z-40 md:hidden"
       >
         <div className="absolute inset-0 bg-background/95 backdrop-blur-xl" onClick={() => setIsOpen(false)} />
-        
+
         <motion.nav
           initial={false}
           animate={{ y: isOpen ? 0 : -20 }}
@@ -133,17 +124,16 @@ const StoryNavigation = () => {
               <motion.button
                 key={chapter.id}
                 initial={{ opacity: 0, x: -20 }}
-                animate={{ 
-                  opacity: isOpen ? 1 : 0, 
-                  x: isOpen ? 0 : -20 
+                animate={{
+                  opacity: isOpen ? 1 : 0,
+                  x: isOpen ? 0 : -20
                 }}
                 transition={{ delay: index * 0.05 }}
                 onClick={() => scrollToSection(chapter.id)}
-                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${
-                  activeSection === chapter.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                }`}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl text-left transition-colors ${activeSection === chapter.id
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                  }`}
               >
                 <span className="text-xs text-primary/50 font-mono">{chapter.number}</span>
                 <span className="font-medium">{chapter.label}</span>
@@ -162,16 +152,14 @@ const StoryNavigation = () => {
             className="group flex items-center gap-3"
             whileHover={{ x: -5 }}
           >
-            <span className={`text-xs font-mono opacity-0 group-hover:opacity-100 transition-opacity ${
-              activeSection === chapter.id ? "text-primary" : "text-muted-foreground"
-            }`}>
+            <span className={`text-xs font-mono opacity-0 group-hover:opacity-100 transition-opacity ${activeSection === chapter.id ? "text-primary" : "text-muted-foreground"
+              }`}>
               {chapter.number}
             </span>
-            <div className={`w-2 h-2 rounded-full transition-all ${
-              activeSection === chapter.id 
-                ? "bg-primary scale-125" 
-                : "bg-muted-foreground/30 group-hover:bg-muted-foreground"
-            }`} />
+            <div className={`w-2 h-2 rounded-full transition-all ${activeSection === chapter.id
+              ? "bg-primary scale-125"
+              : "bg-muted-foreground/30 group-hover:bg-muted-foreground"
+              }`} />
           </motion.button>
         ))}
       </div>
