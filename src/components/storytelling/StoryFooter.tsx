@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Heart, ArrowUp, Github, Linkedin, Mail, Terminal } from "lucide-react";
+import { Heart, ArrowUp, Github, Linkedin, Mail, Terminal, Phone } from "lucide-react";
 import { personalInfo, socials } from "@/data/storytellingData";
 
 const StoryFooter = () => {
@@ -64,6 +64,14 @@ const StoryFooter = () => {
                 aria-label="Email"
               >
                 <Mail className="w-4 h-4" />
+              </motion.a>
+              <motion.a
+                href="tel:+918122715213"
+                whileHover={{ y: -3, scale: 1.05 }}
+                className="w-10 h-10 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-all"
+                aria-label="Phone"
+              >
+                <Phone className="w-4 h-4" />
               </motion.a>
             </div>
           </motion.div>
