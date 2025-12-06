@@ -107,6 +107,14 @@ const StoryFooter = () => {
                   {personalInfo.email}
                 </a>
               </li>
+              <li>
+                <a
+                  href="tel:+918122715213"
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                >
+                  +91 8122715213
+                </a>
+              </li>
               <li className="text-muted-foreground">
                 {personalInfo.location}
               </li>
