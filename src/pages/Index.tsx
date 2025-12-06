@@ -1,9 +1,11 @@
-import Navigation from "@/components/Navigation";
-import Hero from "@/components/Hero";
-import About from "@/components/About";
-import Projects from "@/components/Projects";
-import Contact from "@/components/Contact";
-import Footer from "@/components/Footer";
+import StoryNavigation from "@/components/storytelling/StoryNavigation";
+import StoryHero from "@/components/storytelling/StoryHero";
+import StoryAbout from "@/components/storytelling/StoryAbout";
+import StoryExperience from "@/components/storytelling/StoryExperience";
+import StorySkills from "@/components/storytelling/StorySkills";
+import StoryProjects from "@/components/storytelling/StoryProjects";
+import StoryContact from "@/components/storytelling/StoryContact";
+import StoryFooter from "@/components/storytelling/StoryFooter";
 
 const Index = () => {
   return (
@@ -11,16 +13,28 @@ const Index = () => {
       {/* Noise Overlay */}
       <div className="noise-overlay" />
       
-      <Navigation />
+      <StoryNavigation />
       
       <main>
-        <Hero />
-        <About />
-        <Projects />
-        <Contact />
+        <section id="hero">
+          <StoryHero />
+        </section>
+        <section id="about">
+          <StoryAbout />
+        </section>
+        <section id="experience">
+          <StoryExperience />
+        </section>
+        <section id="skills">
+          <StorySkills />
+        </section>
+        <section id="projects">
+          <StoryProjects />
+        </section>
+        <StoryContact />
       </main>
       
-      <Footer />
+      <StoryFooter />
     </div>
   );
 };
