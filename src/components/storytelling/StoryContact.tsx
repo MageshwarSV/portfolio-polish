@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Send, Sparkles, Check, AlertCircle, Loader2, MessageCircle, User, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { contactInfo, socials } from "@/data/storytellingData";
+import { contactInfo as defaultContactInfo, socials as defaultSocials, personalInfo as defaultPersonalInfo } from "@/data/storytellingData";
+import { getPersonalInfo, getContactInfo, getSocials, initializeData } from "@/lib/portfolioData";
 import emailjs from "@emailjs/browser";
 
 // EmailJS Configuration - Connected to mageshwar.offic@gmail.com
@@ -52,6 +53,51 @@ const StoryContact = () => {
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [chatStarted, setChatStarted] = useState(false);
+  const [personalInfo, setPersonalInfo] = useState(defaultPersonalInfo);
+  const [contactInfo, setContactInfo] = useState(defaultContactInfo);
+  const [socials, setSocials] = useState(defaultSocials);
+
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedInfo = getPersonalInfo();
+        if (loadedInfo) {
+          setPersonalInfo(loadedInfo);
+        }
+        const loadedContact = getContactInfo();
+        if (loadedContact && loadedContact.length > 0) {
+          setContactInfo(loadedContact);
+        }
+        const loadedSocials = getSocials();
+        if (loadedSocials && loadedSocials.length > 0) {
+          setSocials(loadedSocials);
+        }
+      } catch (error) {
+        console.error('Error loading contact data:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

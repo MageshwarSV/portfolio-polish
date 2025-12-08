@@ -1,6 +1,7 @@
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { techStack } from "@/data/storytellingData";
+import { techStack as defaultTechStack } from "@/data/storytellingData";
+import { getTechStack, initializeData } from "@/lib/portfolioData";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
 interface Particle {
@@ -104,11 +105,44 @@ const GlowingOrb = ({
 const AIParticles = () => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [particles, setParticles] = useState<Particle[]>([]);
+    const [techStack, setTechStack] = useState(defaultTechStack);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
     const animationConfig = useAnimationConfig();
 
-    const springConfig = { damping: 25, stiffness: 100 };
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedTechStack = getTechStack();
+        if (loadedTechStack && loadedTechStack.length > 0) {
+          setTechStack(loadedTechStack);
+        }
+      } catch (error) {
+        console.error('Error loading tech stack:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);    const springConfig = { damping: 25, stiffness: 100 };
     const smoothMouseX = useSpring(mouseX, springConfig);
     const smoothMouseY = useSpring(mouseY, springConfig);
 

@@ -1,13 +1,55 @@
 import { motion, useScroll, useTransform } from "framer-motion";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
-import { personalInfo } from "@/data/storytellingData";
+import { personalInfo as defaultPersonalInfo } from "@/data/storytellingData";
+import { getPersonalInfo, initializeData } from "@/lib/portfolioData";
 import { useAdaptiveAnimation } from "@/hooks/useAdaptiveAnimation";
 
 const StoryHero = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
+  const [personalInfo, setPersonalInfo] = useState(defaultPersonalInfo);
   const { config, adjustTransition } = useAdaptiveAnimation();
+
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedInfo = getPersonalInfo();
+        if (loadedInfo) {
+          setPersonalInfo(loadedInfo);
+          setImageError(false);
+        }
+      } catch (error) {
+        console.error('Error loading personal info:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
+
+  // Reset image error when profileImage changes
+  useEffect(() => {
+    setImageError(false);
+  }, [personalInfo.profileImage]);
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -96,25 +138,33 @@ const StoryHero = () => {
               <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
                 <span className="text-foreground">Hi, I'm </span>
                 <span className="text-gradient inline-flex flex-wrap">
-                  {nameLetters.map((letter, index) => (
-                    <motion.span
-                      key={index}
-                      initial={config.enableComplexAnimations ? { opacity: 0, y: 50, rotateX: -90 } : { opacity: 0 }}
-                      animate={config.enableComplexAnimations ? { opacity: 1, y: 0, rotateX: 0 } : { opacity: 1 }}
-                      transition={adjustTransition({
-                        duration: 0.5,
-                        delay: 0.5 + index * 0.05,
-                        ease: [0.215, 0.61, 0.355, 1],
-                      })}
-                      className="inline-block"
-                      style={{
-                        transformOrigin: "bottom",
-                        marginRight: letter === " " ? "0.3em" : "0"
-                      }}
-                    >
-                      {letter === " " ? "\u00A0" : letter}
-                    </motion.span>
-                  ))}
+                  {/* Mobile: Split name into two lines */}
+                  <span className="block md:hidden w-full">
+                    <span className="block">Mageshwar</span>
+                    <span className="block">S V</span>
+                  </span>
+                  {/* Desktop: Animated letter by letter */}
+                  <span className="hidden md:inline-flex md:flex-wrap">
+                    {nameLetters.map((letter, index) => (
+                      <motion.span
+                        key={index}
+                        initial={config.enableComplexAnimations ? { opacity: 0, y: 50, rotateX: -90 } : { opacity: 0 }}
+                        animate={config.enableComplexAnimations ? { opacity: 1, y: 0, rotateX: 0 } : { opacity: 1 }}
+                        transition={adjustTransition({
+                          duration: 0.5,
+                          delay: 0.5 + index * 0.05,
+                          ease: [0.215, 0.61, 0.355, 1],
+                        })}
+                        className="inline-block"
+                        style={{
+                          transformOrigin: "bottom",
+                          marginRight: letter === " " ? "0.3em" : "0"
+                        }}
+                      >
+                        {letter === " " ? "\u00A0" : letter}
+                      </motion.span>
+                    ))}
+                  </span>
                 </span>
               </h1>
             </motion.div>

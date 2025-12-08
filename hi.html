@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BioData - Kumresh S.V</title>
+<script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+<style>
+    body {
+        background-color: #333;
+        margin: 0;
+        padding: 20px;
+        font-family: 'Latha', 'Arial Unicode MS', sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* A4 Paper Styling */
+    .a4-page {
+        width: 210mm;
+        min-height: 297mm;
+        background: white;
+        padding: 40px;
+        box-sizing: border-box;
+        box-shadow: 0 0 15px rgba(0,0,0,0.5);
+        position: relative;
+    }
+
+    /* Download Button Style */
+    .btn-container {
+        margin-bottom: 20px;
+        text-align: center;
+        z-index: 100;
+    }
+    .download-btn {
+        background-color: #d32f2f;
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        transition: background-color 0.3s;
+    }
+    .download-btn:hover {
+        background-color: #b71c1c;
+    }
+    .print-hint {
+        color: #ddd;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+
+    /* Content Styling */
+    h1 {
+        text-align: center;
+        color: #8b4513;
+        border-bottom: 3px solid #8b4513;
+        padding-bottom: 10px;
+        margin-top: 0;
+        text-transform: uppercase;
+        font-size: 24px;
+    }
+
+    .header-section {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 25px;
+    }
+
+    .photo-box {
+        width: 140px;
+        height: 170px;
+        border: 2px solid #8b4513;
+        padding: 4px;
+        background: #fff;
+        overflow: hidden;
+    }
+    .photo-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .details-left {
+        flex: 1;
+        padding-right: 15px;
+    }
+
+    table.info-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    table.info-table td {
+        padding: 6px 5px;
+        vertical-align: top;
+        font-size: 15px;
+        color: #333;
+    }
+    table.info-table td:first-child {
+        width: 40%;
+        font-weight: bold;
+        color: #555;
+    }
+
+    .section-title {
+        background-color: #fbeee6;
+        color: #8b4513;
+        padding: 6px 10px;
+        font-weight: bold;
+        margin-top: 15px;
+        border-left: 5px solid #8b4513;
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+
+    /* Charts Layout */
+    .charts-wrapper {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        margin: 15px 0;
+    }
+    .chart-box {
+        width: 48%;
+    }
+    .chart-header {
+        text-align: center;
+        font-weight: bold;
+        color: #8b4513;
+        margin-bottom: 5px;
+        font-size: 14px;
+    }
+    
+    .grid-table {
+        width: 100%;
+        border-collapse: collapse;
+        border: 2px solid #000;
+        text-align: center;
+        table-layout: fixed;
+    }
+    .grid-table td {
+        border: 1px solid #000;
+        height: 55px;
+        vertical-align: middle;
+        font-size: 13px;
+        font-weight: bold;
+        color: #d32f2f; /* RED COLOR FOR PLANETS */
+        line-height: 1.3;
+    }
+    .center-cell {
+        background-color: #fff0e0;
+        color: #8b4513 !important;
+        font-size: 16px !important;
+    }
+
+    p {
+        margin: 5px 0;
+        line-height: 1.5;
+        font-size: 15px;
+        text-align: justify;
+    }
+
+    /* Print settings */
+    @media print {
+        body { background: white; padding: 0; }
+        .btn-container { display: none; }
+        .a4-page { box-shadow: none; margin: 0; width: 100%; height: auto; }
+    }
+</style>
+</head>
+<body>
+
+    <div class="btn-container">
+        <button class="download-btn" onclick="downloadImage()">📥 Download as Image</button>
+        <div class="print-hint">பட்டன் வேலை செய்யவில்லை என்றால் <b>Ctrl + P</b> அழுத்தி PDF ஆக சேமிக்கவும்.</div>
+    </div>
+
+    <div class="a4-page" id="biodata-content">
+        
+        <h1>மணமகன் பயோடேட்டா</h1>
+
+        <div class="header-section">
+            <div class="details-left">
+                <table class="info-table">
+                    <tr>
+                        <td>பெயர்:</td>
+                        <td><strong>செல்வன். S.V. குமரேஷ்</strong> (B.E)</td>
+                    </tr>
+                    <tr>
+                        <td>பிறந்த தேதி & நேரம்:</td>
+                        <td>21.08.1994 – காலை 02.31 மணி</td>
+                    </tr>
+                    <tr>
+                        <td>வயது:</td>
+                        <td>30</td>
+                    </tr>
+                    <tr>
+                        <td>உயரம்:</td>
+                        <td>5 அடி 8 அங்குலம்</td>
+                    </tr>
+                    <tr>
+                        <td>கல்வித்தகுதி:</td>
+                        <td>B.E (Mechatronics)</td>
+                    </tr>
+                    <tr>
+                        <td>தொழில்:</td>
+                        <td>Technical Manager</td>
+                    </tr>
+                    <tr>
+                        <td>மாத வருமானம்:</td>
+                        <td>₹40,000/-</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="photo-box">
+                <a href="https://ibb.co/0Rjbdgyw"><img src="https://i.ibb.co/8LDZSWgh/Gemini-Generated-Image-rwbnp7rwbnp7rwbn.png" alt="Gemini-Generated-Image-rwbnp7rwbnp7rwbn" border="0"></a>
+            </div>
+        </div>
+
+        <div class="section-title">🔯 ஜாதக விபரங்கள்</div>
+        <table class="info-table">
+            <tr>
+                <td>ராசி / நட்சத்திரம்:</td>
+                <td>கும்பம் / அவிட்டம்</td>
+            </tr>
+            <tr>
+                <td>லக்னம்:</td>
+                <td>தனுசு</td>
+            </tr>
+            <tr>
+                <td>மதம் / சாதி:</td>
+                <td>இந்து / வன்னிய குல சத்திரியர்</td>
+            </tr>
+        </table>
+
+        <div class="charts-wrapper">
+            <div class="chart-box">
+                <div class="chart-header">இராசி</div>
+                <table class="grid-table">
+                    <tr> <td></td> <td>கேது</td> <td></td> <td>செவ்</td> </tr>
+                    <tr> <td>சனி<br>சந்</td> <td colspan="2" rowspan="2" class="center-cell">இராசி</td> <td></td> </tr>
+                    <tr> <td></td> <td>புதன்<br>சூரி</td> </tr>
+                    <tr> <td>ல</td> <td></td> <td>குரு<br>ராகு</td> <td>சுக்</td> </tr>
+                </table>
+            </div>
+
+            <div class="chart-box">
+                <div class="chart-header">நவாம்சம்</div>
+                <table class="grid-table">
+                    <tr> <td></td> <td></td> <td>ல, ராகு<br>சூரி</td> <td></td> </tr>
+                    <tr> <td>சனி<br>சூரி</td> <td colspan="2" rowspan="2" class="center-cell">நவாம்சம்</td> <td>புதன்<br>சுக்</td> </tr>
+                    <tr> <td></td> <td></td> </tr>
+                    <tr> <td>செவ்</td> <td>சந்<br>கேது</td> <td></td> <td></td> </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="section-title">👨‍👩‍👦 குடும்ப விவரம்</div>
+        <table class="info-table">
+            <tr>
+                <td>தந்தை:</td>
+                <td>Mr. வேணுகோபால் (இல்லை)</td>
+            </tr>
+            <tr>
+                <td>தாயார்:</td>
+                <td>Mrs. P. பவானீஸ்வரி (மருந்தாளுனர்)</td>
+            </tr>
+            <tr>
+                <td>உடன்பிறந்தோர்:</td>
+                <td>1 தம்பி (திருமணமாகாதவர்)</td>
+            </tr>
+            <tr>
+                <td>சொத்துக்கள்:</td>
+                <td>சொந்த வீடு, வாடகை வருமானம் ₹20,000/-</td>
+            </tr>
+        </table>
+
+        <div class="section-title">✨ எதிர்பார்ப்பு (பொருந்தும் நட்சத்திரங்கள்)</div>
+        <p>
+            கிருத்திகை, விசாகம், சதயம், ரோகிணி, திருவாதிரை, புனர்பூசம், பூரம், அஸ்வதி, கேட்டை, திருவோணம், பூரட்டாதி, மகம், அசுவினி, சுவாதி, பூராடம், உத்திரட்டாதி, பூசம், உத்திரம், உத்திராடம்.
+        </p>
+
+        <div class="section-title">🏠 முகவரி & தொடர்பு</div>
+        <table class="info-table">
+            <tr>
+                <td>முகவரி:</td>
+                <td><strong>"பவானி இல்லம்"</strong><br>எண்: 41/39, மேட்டுத் தெரு,<br>வடபழனி, சென்னை – 600 026.</td>
+            </tr>
+            <tr>
+                <td>தொடர்பு எண்கள்:</td>
+                <td><strong>95143 16648 / 96771 11067</strong></td>
+            </tr>
+        </table>
+
+    </div>
+
+    <script>
+        function downloadImage() {
+            var container = document.getElementById("biodata-content");
+            var btn = document.querySelector(".download-btn");
+            var originalText = btn.innerText;
+            btn.innerText = "⏳ தயார் ஆகிறது...";
+            window.scrollTo(0,0);
+
+            // Use CORS to attempt loading the external image
+            html2canvas(container, {
+                scale: 2,
+                useCORS: true, 
+                allowTaint: false, // Set false when using CORS for remote images
+                backgroundColor: "#ffffff"
+            }).then(canvas => {
+                var link = document.createElement("a");
+                document.body.appendChild(link);
+                link.download = "Biodata_Kumresh_SV.jpg";
+                link.href = canvas.toDataURL("image/jpeg", 0.9);
+                link.target = '_blank';
+                link.click();
+                document.body.removeChild(link);
+                btn.innerText = originalText;
+            }).catch(err => {
+                console.error("Error:", err);
+                alert("படத்தை டவுன்லோட் செய்வதில் சிக்கல் உள்ளது (பாதுகாப்பு காரணம்).\n\nதயவுசெய்து 'Ctrl + P' அழுத்தி PDF ஆக சேமிக்கவும்.");
+                btn.innerText = originalText;
+            });
+        }
+    </script>
+
+</body>
+</html>

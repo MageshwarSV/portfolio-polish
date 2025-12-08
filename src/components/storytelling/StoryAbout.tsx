@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
-import { aboutContent, personalInfo, certifications } from "@/data/storytellingData";
+import { useRef, useState, useEffect } from "react";
+import { aboutContent as defaultAboutContent, personalInfo as defaultPersonalInfo, certifications as defaultCertifications } from "@/data/storytellingData";
+import { getCertifications, getAboutContent, getPersonalInfo, initializeData } from "@/lib/portfolioData";
 import { Code2, Zap, MapPin, Briefcase, GraduationCap, Award, Sparkles, TrendingUp } from "lucide-react";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
@@ -8,7 +9,52 @@ import { useAnimationConfig } from "@/contexts/PerformanceContext";
 const StoryAbout = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+  const [aboutContent, setAboutContent] = useState(defaultAboutContent);
+  const [personalInfo, setPersonalInfo] = useState(defaultPersonalInfo);
+  const [certifications, setCertifications] = useState(defaultCertifications);
   const animationConfig = useAnimationConfig();
+
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedAbout = getAboutContent();
+        if (loadedAbout) {
+          setAboutContent(loadedAbout);
+        }
+        const loadedPersonalInfo = getPersonalInfo();
+        if (loadedPersonalInfo) {
+          setPersonalInfo(loadedPersonalInfo);
+        }
+        const loadedCertifications = getCertifications();
+        if (loadedCertifications && loadedCertifications.length > 0) {
+          setCertifications(loadedCertifications);
+        }
+      } catch (error) {
+        console.error('Error loading about data:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
 
   const stats = [
     { label: "Years Building", value: "3+", icon: Code2, color: "from-green-500 to-emerald-500" },

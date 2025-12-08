@@ -262,11 +262,26 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
   const info = deviceInfo || getDeviceInfo();
   const { performanceScore, type, prefersReducedMotion: reducedMotion } = info;
   
-  // High performance (70+): All features enabled with 120fps if supported
+  // Mobile: Only basic slide and component load animations
+  if (type === 'mobile' || type === 'tablet') {
+    return {
+      enableParticles: false,
+      enableCustomCursor: false,
+      enableComplexAnimations: false, // Disables hover, float, parallax, etc.
+      enableSmoothScroll: false,
+      enableLoadingScreen: true, // Show loading screen on mobile
+      animationDuration: 0.6, // Only for slide/fade in
+      particleCount: 0,
+      targetFPS: 60,
+      useGPUAcceleration: false,
+    };
+  }
+  
+  // Desktop/PC: High performance (70+): All features enabled with 120fps if supported
   if (performanceScore >= 70 && !reducedMotion) {
     return {
       enableParticles: true,
-      enableCustomCursor: type === 'desktop',
+      enableCustomCursor: true,
       enableComplexAnimations: true,
       enableSmoothScroll: true,
       enableLoadingScreen: true,
@@ -277,22 +292,22 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
     };
   }
   
-  // Medium performance (40-69): Reduced features with GPU optimization
+  // Desktop/PC: Medium performance (40-69): Reduced features with GPU optimization
   if (performanceScore >= 40 && !reducedMotion) {
     return {
-      enableParticles: type === 'desktop',
-      enableCustomCursor: type === 'desktop',
+      enableParticles: true,
+      enableCustomCursor: true,
       enableComplexAnimations: true,
-      enableSmoothScroll: type !== 'mobile',
+      enableSmoothScroll: true,
       enableLoadingScreen: true,
       animationDuration: 0.8,
-      particleCount: type === 'mobile' ? 0 : 10,
-      targetFPS: (type === 'mobile' && info.supportsHighRefreshRate) ? 90 : 60,
+      particleCount: 10,
+      targetFPS: 60,
       useGPUAcceleration: info.hasGPU,
     };
   }
   
-  // Low performance (<40) or reduced motion preference: Minimal animations
+  // Desktop/PC: Low performance (<40) or reduced motion preference: Minimal animations
   return {
     enableParticles: false,
     enableCustomCursor: false,

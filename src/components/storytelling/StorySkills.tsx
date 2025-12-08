@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
-import { skillCategories, certifications, achievements } from "@/data/storytellingData";
+import { useRef, useState, useEffect } from "react";
+import { skillCategories as defaultSkillCategories, certifications as defaultCertifications, achievements as defaultAchievements } from "@/data/storytellingData";
+import { getSkills, getCertifications, getAchievements, initializeData } from "@/lib/portfolioData";
 import { Zap, Star, Trophy, Shield, Award } from "lucide-react";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
@@ -9,12 +10,52 @@ const StorySkills = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
+  const [skillCategories, setSkillCategories] = useState(defaultSkillCategories);
+  const [certifications, setCertifications] = useState(defaultCertifications);
+  const [achievements, setAchievements] = useState(defaultAchievements);
   const animationConfig = useAnimationConfig();
 
-  // Calculate total XP
-  const totalXP = skillCategories.reduce((acc, cat) =>
-    acc + cat.skills.reduce((a, s) => a + s.level, 0), 0
-  );
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedCategories = getSkills();
+        if (loadedCategories && Array.isArray(loadedCategories) && loadedCategories.length > 0) {
+          setSkillCategories(loadedCategories);
+        }
+        const loadedCertifications = getCertifications();
+        if (loadedCertifications && loadedCertifications.length > 0) {
+          setCertifications(loadedCertifications);
+        }
+        const loadedAchievements = getAchievements();
+        if (loadedAchievements && loadedAchievements.length > 0) {
+          setAchievements(loadedAchievements);
+        }
+      } catch (error) {
+        console.error('Error loading skills:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
 
   // Calculate age based on birthdate (15-12-2003)
   const birthDate = new Date(2003, 11, 15); // Month is 0-indexed, so 11 = December
@@ -25,6 +66,19 @@ const StorySkills = () => {
     age--;
   }
   const level = age; // Age = Level!
+  
+  // Calculate XP based on days into current year of life
+  const lastBirthday = new Date(today.getFullYear(), 11, 15);
+  if (today < lastBirthday) {
+    lastBirthday.setFullYear(today.getFullYear() - 1);
+  }
+  const nextBirthday = new Date(lastBirthday);
+  nextBirthday.setFullYear(lastBirthday.getFullYear() + 1);
+  
+  const totalDaysInYear = Math.floor((nextBirthday.getTime() - lastBirthday.getTime()) / (1000 * 60 * 60 * 24));
+  const daysSinceLastBirthday = Math.floor((today.getTime() - lastBirthday.getTime()) / (1000 * 60 * 60 * 24));
+  const xpProgress = Math.floor((daysSinceLastBirthday / totalDaysInYear) * 100); // 0-100 based on year progress
+  const totalXP = xpProgress; // Use age-based XP for progress
 
   return (
     <section ref={ref} id="skills" className="relative py-24 overflow-hidden">
@@ -99,13 +153,13 @@ const StorySkills = () => {
             <div className="mt-4">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>Level Progress</span>
-                <span>{totalXP % 100}/100 XP to next level</span>
+                <span>{xpProgress}/100 XP to next level</span>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <motion.div
                   className="h-full bg-gradient-to-r from-primary to-accent"
                   initial={{ width: 0 }}
-                  whileInView={{ width: `${totalXP % 100}%` }}
+                  whileInView={{ width: `${xpProgress}%` }}
                   viewport={{ once: false }}
                   transition={{ duration: 1, ease: "easeOut" }}
                 />
@@ -117,7 +171,7 @@ const StorySkills = () => {
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
             {skillCategories.map((category, index) => (
               <button
-                key={category.title}
+                key={`${category.title}-${index}`}
                 onClick={() => setSelectedCategory(index)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${selectedCategory === index
                   ? "bg-primary text-primary-foreground"

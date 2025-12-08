@@ -1,8 +1,51 @@
 import { motion } from "framer-motion";
 import { Heart, ArrowUp, Github, Linkedin, Mail, Terminal, Phone } from "lucide-react";
-import { personalInfo, socials } from "@/data/storytellingData";
+import { personalInfo as defaultPersonalInfo, socials as defaultSocials } from "@/data/storytellingData";
+import { getPersonalInfo, getSocials, initializeData } from "@/lib/portfolioData";
+import { useEffect, useState } from "react";
 
 const StoryFooter = () => {
+  const [personalInfo, setPersonalInfo] = useState(defaultPersonalInfo);
+  const [socials, setSocials] = useState(defaultSocials);
+
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedInfo = getPersonalInfo();
+        if (loadedInfo) {
+          setPersonalInfo(loadedInfo);
+        }
+        const loadedSocials = getSocials();
+        if (loadedSocials && loadedSocials.length > 0) {
+          setSocials(loadedSocials);
+        }
+      } catch (error) {
+        console.error('Error loading footer data:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };

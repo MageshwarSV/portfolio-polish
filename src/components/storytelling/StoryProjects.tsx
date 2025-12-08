@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { ExternalLink, Github, Star, Download, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { projects } from "@/data/storytellingData";
+import { projects as defaultProjects } from "@/data/storytellingData";
+import { getProjects, initializeData } from "@/lib/portfolioData";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
 // App Store Style Projects Section
@@ -11,6 +12,41 @@ const StoryProjects = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const animationConfig = useAnimationConfig();
+  const [projects, setProjects] = useState(defaultProjects);
+
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedProjects = getProjects();
+        if (loadedProjects && loadedProjects.length > 0) {
+          setProjects(loadedProjects);
+        }
+      } catch (error) {
+        console.error('Error loading projects:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
 
   const categories = [
     { id: "all", label: "All Projects" },

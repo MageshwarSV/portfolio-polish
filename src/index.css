@@ -50,6 +50,10 @@
 @layer base {
   * {
     @apply border-border;
+  }
+  
+  /* Hide cursor only on main portfolio, not admin */
+  body:not(.admin-panel) * {
     cursor: none;
   }
 

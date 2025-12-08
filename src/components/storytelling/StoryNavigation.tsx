@@ -1,12 +1,48 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
-import { chapters } from "@/data/storytellingData";
+import { chapters as defaultChapters } from "@/data/storytellingData";
+import { getChapters, initializeData } from "@/lib/portfolioData";
 
 const StoryNavigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
+  const [chapters, setChapters] = useState(defaultChapters);
   const { scrollYProgress } = useScroll();
+
+  useEffect(() => {
+    let lastUpdate = localStorage.getItem('portfolio_last_update');
+
+    const loadData = () => {
+      try {
+        initializeData();
+        const loadedChapters = getChapters();
+        if (loadedChapters && loadedChapters.length > 0) {
+          setChapters(loadedChapters);
+        }
+      } catch (error) {
+        console.error('Error loading chapters:', error);
+      }
+    };
+
+    loadData();
+
+    const pollInterval = setInterval(() => {
+      const currentUpdate = localStorage.getItem('portfolio_last_update');
+      if (currentUpdate !== lastUpdate) {
+        lastUpdate = currentUpdate;
+        loadData();
+      }
+    }, 300);
+
+    const handleUpdate = () => loadData();
+    window.addEventListener('portfolio_data_updated', handleUpdate);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('portfolio_data_updated', handleUpdate);
+    };
+  }, []);
 
   const backgroundOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 1]);
 

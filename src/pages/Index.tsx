@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 import StoryNavigation from "@/components/storytelling/StoryNavigation";
@@ -18,39 +18,80 @@ const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const animationConfig = useAnimationConfig();
 
+  // Scroll to top on page load/refresh
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
+  // Hide scrollbar and prevent scroll during loading
+  useEffect(() => {
+    if (isLoading) {
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, [isLoading]);
+
+  // Listen for admin panel updates - now components update live without refresh!
+  // This is just kept for backwards compatibility
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'portfolio_refresh_trigger') {
+        // Components now update live, but we can still force reload if needed
+        console.log('Portfolio data updated from admin panel');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   // Adjust initial loading state based on performance
   const shouldShowLoading = animationConfig.enableLoadingScreen && isLoading;
+
+  // Handle loading completion - quotes are done, now load content
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+  };
 
   return (
     <>
       {/* Poetic Loading Screen with Quotes - Only on high-performance devices */}
       <AnimatePresence>
         {shouldShowLoading && (
-          <PoeticLoading onComplete={() => setIsLoading(false)} />
+          <PoeticLoading onComplete={handleLoadingComplete} />
         )}
       </AnimatePresence>
 
-      {/* Main Content with Conditional Smooth Scroll */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: (shouldShowLoading ? 0 : 1) }}
-        transition={{ 
-          duration: 0.8 * animationConfig.animationDuration, 
-          delay: 0.2 * animationConfig.animationDuration 
-        }}
-      >
-        {!shouldShowLoading && (
-          <>
-            {animationConfig.enableSmoothScroll ? (
-              <SmoothScrollProvider>
-                <PageContent animationConfig={animationConfig} />
-              </SmoothScrollProvider>
-            ) : (
-              <PageContent animationConfig={animationConfig} />
-            )}
-          </>
+      {/* Main Content - Hidden during loading, don't render until loading complete */}
+      {!shouldShowLoading && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ 
+            duration: 0.8 * animationConfig.animationDuration, 
+            delay: 0.2 * animationConfig.animationDuration 
+          }}
+        >
+        {animationConfig.enableSmoothScroll ? (
+          <SmoothScrollProvider>
+            <PageContent animationConfig={animationConfig} />
+          </SmoothScrollProvider>
+        ) : (
+          <PageContent animationConfig={animationConfig} />
         )}
-      </motion.div>
+        </motion.div>
+      )}
     </>
   );
 };
