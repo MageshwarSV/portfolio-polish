@@ -99,18 +99,7 @@ const DNAHelix = () => {
     );
 };
 
-// ... (skip down to loading text)
 
-{/* Loading text */ }
-<motion.p
-    className="mt-4 text-xs text-muted-foreground font-mono uppercase tracking-widest"
-    animate={{ opacity: [0.3, 0.7, 0.3] }}
-    transition={{ duration: 2, repeat: Infinity }}
->
-    {currentLine === quotes.length - 1
-        ? (!isDataReady ? "Synchronizing with cloud..." : "Starting Engine...")
-        : (currentLine > 1 ? "Analyzing System Hardware..." : "Initializing Experience...")}
-</motion.p>
 
 // Neural network nodes
 const NeuralNetwork = () => {
@@ -357,9 +346,9 @@ const PoeticLoading = ({ onComplete, isDataReady = true }: { onComplete: () => v
                             animate={{ opacity: [0.3, 0.7, 0.3] }}
                             transition={{ duration: 2, repeat: Infinity }}
                         >
-                            {currentLine === quotes.length - 1 && !isDataReady
-                                ? "Synchronizing with cloud..."
-                                : "Initializing Experience..."}
+                            {currentLine === quotes.length - 1
+                                ? (!isDataReady ? "Synchronizing with cloud..." : "Starting Engine...")
+                                : (currentLine > 1 ? "Analyzing System Hardware..." : "Initializing Experience...")}
                         </motion.p>
                     </div>
                 </motion.div>
