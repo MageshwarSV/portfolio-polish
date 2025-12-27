@@ -43,7 +43,7 @@
     --shadow-glow: 0 0 60px hsl(160 84% 50% / 0.15);
     --shadow-card: 0 25px 50px -12px hsl(0 0% 0% / 0.5);
 
-    --noise-opacity: 0.03;
+    --noise-opacity: 0.005;
   }
 }
 
@@ -51,7 +51,7 @@
   * {
     @apply border-border;
   }
-  
+
   /* Hide cursor only on main portfolio, not admin */
   body:not(.admin-panel) * {
     cursor: none;
@@ -101,7 +101,9 @@
   }
 
   /* Hide cursor on touch devices and mobile */
-  @media (hover: none), (pointer: coarse), (max-width: 768px) {
+  @media (hover: none),
+  (pointer: coarse),
+  (max-width: 768px) {
     * {
       cursor: auto !important;
     }
@@ -322,6 +324,7 @@
 
 /* Reduced Motion Support - Respects user's accessibility preferences */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

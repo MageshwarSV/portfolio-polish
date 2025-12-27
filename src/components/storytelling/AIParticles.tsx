@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { techStack as defaultTechStack } from "@/data/storytellingData";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
+import { ThemeSettings, defaultThemeSettings } from "@/lib/themeSettings";
 
 interface Particle {
     id: number;
@@ -12,6 +13,10 @@ interface Particle {
     label?: string;
     delay: number;
     duration: number;
+}
+
+interface AIParticlesProps {
+    themeSettings?: ThemeSettings;
 }
 
 // Separate component for labeled particles to keep hooks at top level
@@ -29,8 +34,8 @@ const LabeledParticle = ({
 
     return (
         <motion.div
-            className="px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary/70 whitespace-nowrap backdrop-blur-sm"
-            whileHover={{ scale: 1.1 }}
+            className="px-3 py-1.5 rounded-full bg-primary/5 border border-primary/10 text-[10px] font-medium text-primary/40 whitespace-nowrap"
+            whileHover={{ scale: 1.1, color: "hsl(var(--primary) / 0.8)", backgroundColor: "hsl(var(--primary) / 0.1)" }}
             style={{ x: xOffset, y: yOffset }}
         >
             {particle.label}
@@ -53,11 +58,11 @@ const DotParticle = ({
 
     return (
         <motion.div
-            className="rounded-full bg-primary/50"
+            className="rounded-full bg-primary/20"
             style={{
                 width: particle.size,
                 height: particle.size,
-                boxShadow: `0 0 ${particle.size * 2}px hsl(var(--primary) / 0.5)`,
+                boxShadow: `0 0 ${particle.size * 2}px hsl(var(--primary) / 0.2)`,
                 x: xOffset,
                 y: yOffset,
             }}
@@ -102,7 +107,7 @@ const GlowingOrb = ({
     );
 };
 
-const AIParticles = () => {
+const AIParticles = ({ themeSettings = defaultThemeSettings }: AIParticlesProps) => {
     const { data: portfolioData } = usePortfolio();
     const containerRef = useRef<HTMLDivElement>(null);
     const [particles, setParticles] = useState<Particle[]>([]);
@@ -117,14 +122,15 @@ const AIParticles = () => {
     const smoothMouseX = useSpring(mouseX, springConfig);
     const smoothMouseY = useSpring(mouseY, springConfig);
 
-    const { scrollYProgress } = useScroll();
-    const particleOpacity = useTransform(scrollYProgress, [0, 0.1, 0.9, 1], [1, 0.6, 0.6, 0.2]);
+    // Get particle configuration from theme settings
+    const showTechLabels = themeSettings.particles.techLabels;
+    const showNeuralLines = themeSettings.particles.neuralLines;
+    const showOrbs = themeSettings.particles.orbsEnabled;
+    const orbsOpacity = themeSettings.particles.orbsOpacity / 100;
+    const particleCount = themeSettings.particles.count || animationConfig.particleCount || 20;
 
     useEffect(() => {
         const newParticles: Particle[] = [];
-
-        // Use particle count from animation config
-        const particleCount = animationConfig.particleCount || 20;
 
         // Main floating particles (dots) - Adaptive count
         for (let i = 0; i < particleCount; i++) {
@@ -138,22 +144,24 @@ const AIParticles = () => {
             });
         }
 
-        // Tech label particles - Only show on higher performance devices
-        const techLabelCount = particleCount >= 15 ? 6 : particleCount >= 10 ? 3 : 0;
-        techStack.slice(0, techLabelCount).forEach((tech: string, i: number) => {
-            newParticles.push({
-                id: 100 + i,
-                x: 10 + (i % 3) * 30 + Math.random() * 10,
-                y: 15 + Math.floor(i / 3) * 60 + Math.random() * 20,
-                size: 6,
-                label: tech,
-                delay: i * 0.5,
-                duration: 20 + Math.random() * 10,
+        // Tech label particles - Only show if enabled in theme settings
+        if (showTechLabels) {
+            const techLabelCount = particleCount >= 15 ? 8 : particleCount >= 10 ? 4 : 0;
+            techStack.slice(0, techLabelCount).forEach((tech: string, i: number) => {
+                newParticles.push({
+                    id: 100 + i,
+                    x: 10 + (i % 3) * 30 + Math.random() * 10,
+                    y: 15 + Math.floor(i / 3) * 60 + Math.random() * 20,
+                    size: 6,
+                    label: tech,
+                    delay: i * 0.5,
+                    duration: 20 + Math.random() * 10,
+                });
             });
-        });
+        }
 
         setParticles(newParticles);
-    }, [animationConfig.particleCount, techStack]);
+    }, [particleCount, techStack, showTechLabels]);
 
     useEffect(() => {
         // Only track mouse on non-touch devices (desktop/laptop)
@@ -176,35 +184,43 @@ const AIParticles = () => {
         <motion.div
             ref={containerRef}
             className="fixed inset-0 pointer-events-none z-0 overflow-hidden"
-            style={{ opacity: particleOpacity }}
+            style={{
+                opacity: 1,
+                top: 0,
+                left: 0,
+                width: '100vw',
+                height: '100vh'
+            }}
         >
-            {/* Neural network lines - static SVG, no hooks */}
-            <svg className="absolute inset-0 w-full h-full opacity-10">
-                <defs>
-                    <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.5" />
-                        <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0.1" />
-                    </linearGradient>
-                </defs>
-                {particles.slice(0, 10).map((p, i) => {
-                    const nextP = particles[(i + 1) % 10];
-                    if (!nextP) return null;
-                    return (
-                        <motion.line
-                            key={`line-${p.id}`}
-                            x1={`${p.x}%`}
-                            y1={`${p.y}%`}
-                            x2={`${nextP.x}%`}
-                            y2={`${nextP.y}%`}
-                            stroke="url(#lineGradient)"
-                            strokeWidth="1"
-                            initial={{ pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 0.3 }}
-                            transition={{ duration: 2, delay: i * 0.1, repeat: Infinity, repeatType: "reverse", repeatDelay: 5 }}
-                        />
-                    );
-                })}
-            </svg>
+            {/* Neural network lines - controlled by theme settings */}
+            {showNeuralLines && (
+                <svg className="absolute inset-0 w-full h-full opacity-5">
+                    <defs>
+                        <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.3" />
+                            <stop offset="100%" stopColor="hsl(var(--accent))" stopOpacity="0.1" />
+                        </linearGradient>
+                    </defs>
+                    {particles.slice(0, 10).map((p, i) => {
+                        const nextP = particles[(i + 1) % 10];
+                        if (!nextP) return null;
+                        return (
+                            <motion.line
+                                key={`line-${p.id}`}
+                                x1={`${p.x}%`}
+                                y1={`${p.y}%`}
+                                x2={`${nextP.x}%`}
+                                y2={`${nextP.y}%`}
+                                stroke="url(#lineGradient)"
+                                strokeWidth="1"
+                                initial={{ pathLength: 0, opacity: 0 }}
+                                animate={{ pathLength: 1, opacity: 0.2 }}
+                                transition={{ duration: 2, delay: i * 0.1, repeat: Infinity, repeatType: "reverse", repeatDelay: 5 }}
+                            />
+                        );
+                    })}
+                </svg>
+            )}
 
             {/* Floating particles - using dedicated components */}
             {particles.map((particle) => (
@@ -217,7 +233,7 @@ const AIParticles = () => {
                     }}
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{
-                        opacity: [0.2, 0.6, 0.2],
+                        opacity: [0.1, 0.4, 0.1],
                         scale: [1, 1.2, 1],
                     }}
                     transition={{
@@ -243,25 +259,25 @@ const AIParticles = () => {
                 </motion.div>
             ))}
 
-            {/* Glowing orbs - Only show on desktop/systems */}
-            {animationConfig.enableComplexAnimations && (
+            {/* Glowing orbs - controlled by theme settings */}
+            {showOrbs && animationConfig.enableComplexAnimations && (
                 <>
                     <GlowingOrb
-                        className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-[100px] opacity-20 hidden md:block"
+                        className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full blur-[100px] hidden md:block"
                         smoothMouseX={smoothMouseX}
                         smoothMouseY={smoothMouseY}
                         xRange={[-50, 50]}
                         yRange={[-50, 50]}
-                        animateProps={{ scale: [1, 1.2, 1], opacity: [0.15, 0.25, 0.15] }}
+                        animateProps={{ scale: [1, 1.2, 1], opacity: [orbsOpacity * 0.5, orbsOpacity, orbsOpacity * 0.5] }}
                         duration={8}
                     />
                     <GlowingOrb
-                        className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] opacity-15 hidden md:block"
+                        className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full blur-[120px] hidden md:block"
                         smoothMouseX={smoothMouseX}
                         smoothMouseY={smoothMouseY}
                         xRange={[30, -30]}
                         yRange={[30, -30]}
-                        animateProps={{ scale: [1.2, 1, 1.2], opacity: [0.1, 0.2, 0.1] }}
+                        animateProps={{ scale: [1.2, 1, 1.2], opacity: [orbsOpacity * 0.3, orbsOpacity * 0.8, orbsOpacity * 0.3] }}
                         duration={10}
                         delay={2}
                     />

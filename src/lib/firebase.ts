@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
-import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
+import { getDatabase } from "firebase/database";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -10,23 +10,15 @@ const firebaseConfig = {
     storageBucket: "portfolio-ba30d.firebasestorage.app",
     messagingSenderId: "477640903872",
     appId: "1:477640903872:web:9a71836ba73134a4593125",
-    measurementId: "G-WJDPKK4BX7"
+    measurementId: "G-WJDPKK4BX7",
+    databaseURL: "https://portfolio-ba30d-default-rtdb.firebaseio.com"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
-const db = getFirestore(app);
 
-// Enable persistence for instant loads
-if (typeof window !== 'undefined') {
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') {
-            console.warn('Firestore persistence: Multiple tabs open');
-        } else if (err.code === 'unimplemented') {
-            console.warn('Firestore persistence: Browser not supported');
-        }
-    });
-}
+// Use Realtime Database - faster and no offline caching issues
+const db = getDatabase(app);
 
 export { app, db, analytics };

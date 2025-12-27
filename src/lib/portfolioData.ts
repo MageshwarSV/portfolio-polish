@@ -1,4 +1,4 @@
-// Portfolio data management utilities using Firebase Firestore
+// Portfolio data management utilities using Firebase Realtime Database
 import {
   experiences as defaultExperiences,
   projects as defaultProjects,
@@ -13,107 +13,96 @@ import {
   techStack as defaultTechStack
 } from '@/data/storytellingData';
 import { db } from './firebase';
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
+import { ref, get, set, update } from 'firebase/database';
 
-const COLLECTION_NAME = 'portfolio';
-const DOCUMENT_ID = 'global_data';
+const DATA_PATH = 'portfolio';
 
-// Initialize data from storytellingData.ts to Firestore if not exists
+// Initialize data from storytellingData.ts to Realtime Database if missing
 export const initializeData = async () => {
   if (typeof window === 'undefined') return;
 
   try {
-    const docRef = doc(db, COLLECTION_NAME, DOCUMENT_ID);
-    const docSnap = await getDoc(docRef);
+    const dataRef = ref(db, DATA_PATH);
+    const snapshot = await get(dataRef);
+    const existingData = snapshot.exists() ? snapshot.val() : {};
 
-    if (!docSnap.exists()) {
-      console.log('Initializing Firestore with default content...');
-      // Strip icons before saving to Firestore
-      const contactWithoutIcons = defaultContactInfo.map(({ icon, ...rest }) => rest);
-      const socialsWithoutIcons = defaultSocials.map(({ icon, ...rest }) => rest);
-      const experiencesWithoutIcons = defaultExperiences.map(({ icon, ...rest }) => rest);
-      const projectsWithoutIcons = defaultProjects.map(({ icon, ...rest }) => rest);
-      const aboutWithoutIcons = {
-        ...defaultAbout,
-        highlights: defaultAbout.highlights.map(({ icon, ...rest }) => rest)
-      };
+    const contactWithoutIcons = defaultContactInfo.map(({ icon, ...rest }) => rest);
+    const socialsWithoutIcons = defaultSocials.map(({ icon, ...rest }) => rest);
+    const experiencesWithoutIcons = defaultExperiences.map(({ icon, ...rest }) => rest);
+    const projectsWithoutIcons = defaultProjects.map(({ icon, ...rest }) => rest);
+    const aboutWithoutIcons = {
+      ...defaultAbout,
+      highlights: defaultAbout.highlights.map(({ icon, ...rest }) => rest)
+    };
 
-      await setDoc(docRef, {
-        experiences: experiencesWithoutIcons,
-        projects: projectsWithoutIcons,
-        skills: defaultSkills,
-        about: aboutWithoutIcons,
-        personal: defaultPersonalInfo,
-        certifications: defaultCertifications,
-        achievements: defaultAchievements,
-        contact: contactWithoutIcons,
-        socials: socialsWithoutIcons,
-        chapters: defaultChapters,
-        techstack: defaultTechStack,
+    const newData: any = { ...existingData };
+    let hasChanges = false;
+
+    const isMissing = (val: any) => !val || (Array.isArray(val) && val.length === 0);
+
+    if (isMissing(existingData.experiences)) { newData.experiences = experiencesWithoutIcons; hasChanges = true; }
+    if (isMissing(existingData.projects)) { newData.projects = projectsWithoutIcons; hasChanges = true; }
+    if (isMissing(existingData.skills)) { newData.skills = defaultSkills; hasChanges = true; }
+    if (isMissing(existingData.about)) { newData.about = aboutWithoutIcons; hasChanges = true; }
+    if (isMissing(existingData.personal)) { newData.personal = defaultPersonalInfo; hasChanges = true; }
+    if (isMissing(existingData.certifications)) { newData.certifications = defaultCertifications; hasChanges = true; }
+    if (isMissing(existingData.achievements)) { newData.achievements = defaultAchievements; hasChanges = true; }
+    if (isMissing(existingData.contact)) { newData.contact = contactWithoutIcons; hasChanges = true; }
+    if (isMissing(existingData.socials)) { newData.socials = socialsWithoutIcons; hasChanges = true; }
+    if (isMissing(existingData.chapters)) { newData.chapters = defaultChapters; hasChanges = true; }
+    if (isMissing(existingData.techstack)) { newData.techstack = defaultTechStack; hasChanges = true; }
+
+    if (hasChanges || !snapshot.exists()) {
+      console.log('Synchronizing default data to Realtime Database...');
+      await set(dataRef, {
+        ...newData,
         last_update: Date.now()
       });
-      console.log('Firestore initialized successfully.');
+      console.log('Realtime Database synchronized successfully.');
     }
   } catch (error) {
-    console.error('Error initializing Firestore:', error);
+    console.error('Error initializing Realtime Database:', error);
   }
 };
 
-// Generic getter and setter for Firestore data
+// Generic getter and setter for Realtime Database
 const getData = async (key: string, defaultValue: any) => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, DOCUMENT_ID);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data()[key] || defaultValue;
+    const dataRef = ref(db, `${DATA_PATH}/${key}`);
+    const snapshot = await get(dataRef);
+    if (snapshot.exists()) {
+      return snapshot.val();
     }
   } catch (error) {
-    console.error(`Error getting ${key} from Firestore:`, error);
+    console.error(`Error getting ${key} from Realtime Database:`, error);
   }
   return defaultValue;
 };
 
-const CACHE_KEY = 'portfolio_data_cache';
-
 const saveData = async (key: string, data: any) => {
   try {
-    const docRef = doc(db, COLLECTION_NAME, DOCUMENT_ID);
-    await updateDoc(docRef, {
+    const dataRef = ref(db, DATA_PATH);
+    await update(dataRef, {
       [key]: data,
       last_update: Date.now()
     });
-
-    // Sync local manual cache for instant loading on next refresh
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      const fullData = cached ? JSON.parse(cached) : {};
-      fullData[key] = data;
-      localStorage.setItem(CACHE_KEY, JSON.stringify(fullData));
-    } catch (e) {
-      console.warn('Failed to sync local cache on save:', e);
-    }
-
-    // Trigger local events for compatibility
-    localStorage.setItem('portfolio_last_update', Date.now().toString());
-    window.dispatchEvent(new CustomEvent('portfolio_data_updated'));
   } catch (error) {
-    console.error(`Error saving ${key} to Firestore:`, error);
+    console.error(`Error saving ${key} to Realtime Database:`, error);
   }
 };
 
 // Get data with automatic sorting and status updates
 export const getExperiences = async () => {
-  const experiences = await getData('experiences', defaultExperiences);
-  const currentYear = new Date().getFullYear();
+  const experiences = await getData('experiences', []);
+  if (!experiences || experiences.length === 0) return defaultExperiences;
 
-  return experiences
-    .map((exp: any) => {
-      const endYear = exp.period.includes('Present') ? currentYear : parseInt(exp.period.split('-')[1]?.trim() || currentYear);
-      const status = exp.period.includes('Present') ? 'current' : 'completed';
-      const defaultExp = defaultExperiences.find(e => e.id === exp.id);
-      return { ...exp, type: status, endYear, icon: defaultExp?.icon || defaultExperiences[0].icon };
-    })
-    .sort((a: any, b: any) => b.endYear - a.endYear);
+  const currentYear = new Date().getFullYear();
+  return experiences.map((exp: any) => {
+    const endYear = exp.period?.includes('Present') ? currentYear : parseInt(exp.period?.split('-')[1]?.trim() || currentYear);
+    const status = exp.period?.includes('Present') ? 'current' : 'completed';
+    const defaultExp = defaultExperiences.find(e => e.id === exp.id);
+    return { ...exp, type: status, endYear, icon: defaultExp?.icon || defaultExperiences[0].icon };
+  }).sort((a: any, b: any) => b.endYear - a.endYear);
 };
 
 export const saveExperiences = async (data: any[]) => {
@@ -122,8 +111,10 @@ export const saveExperiences = async (data: any[]) => {
 };
 
 export const getProjects = async () => {
-  const loadedProjects = await getData('projects', defaultProjects);
-  return loadedProjects.map((project: any) => {
+  const projects = await getData('projects', []);
+  if (!projects || projects.length === 0) return defaultProjects;
+
+  return projects.map((project: any) => {
     const defaultProject = defaultProjects.find(p => p.id === project.id);
     return { ...project, icon: defaultProject?.icon || defaultProjects[0].icon };
   });
@@ -135,7 +126,8 @@ export const saveProjects = async (data: any[]) => {
 };
 
 export const getSkills = async () => {
-  return await getData('skills', defaultSkills);
+  const skills = await getData('skills', null);
+  return skills || defaultSkills;
 };
 
 export const saveSkills = async (data: any[]) => {
@@ -143,14 +135,16 @@ export const saveSkills = async (data: any[]) => {
 };
 
 export const getAbout = async () => {
-  const loadedAbout = await getData('about', defaultAbout);
-  if (loadedAbout.highlights && Array.isArray(loadedAbout.highlights)) {
-    loadedAbout.highlights = loadedAbout.highlights.map((highlight: any, index: number) => {
+  const about = await getData('about', null);
+  if (!about) return defaultAbout;
+
+  if (about.highlights && Array.isArray(about.highlights)) {
+    about.highlights = about.highlights.map((highlight: any, index: number) => {
       const defaultHighlight = defaultAbout.highlights[index];
       return { ...highlight, icon: defaultHighlight?.icon || defaultAbout.highlights[0].icon };
     });
   }
-  return loadedAbout;
+  return about;
 };
 
 export const saveAbout = async (data: any) => {
@@ -162,7 +156,8 @@ export const saveAbout = async (data: any) => {
 };
 
 export const getPersonalInfo = async () => {
-  return await getData('personal', defaultPersonalInfo);
+  const personal = await getData('personal', null);
+  return personal || defaultPersonalInfo;
 };
 
 export const savePersonalInfo = async (data: any) => {
@@ -170,7 +165,8 @@ export const savePersonalInfo = async (data: any) => {
 };
 
 export const getCertifications = async () => {
-  const certs = await getData('certifications', defaultCertifications);
+  const certs = await getData('certifications', []);
+  if (!certs || certs.length === 0) return defaultCertifications;
   return certs.sort((a: any, b: any) => b.year - a.year);
 };
 
@@ -179,7 +175,8 @@ export const saveCertifications = async (data: any) => {
 };
 
 export const getAchievements = async () => {
-  const achievements = await getData('achievements', defaultAchievements);
+  const achievements = await getData('achievements', []);
+  if (!achievements || achievements.length === 0) return defaultAchievements;
   return achievements.sort((a: any, b: any) => b.year - a.year);
 };
 
@@ -188,11 +185,9 @@ export const saveAchievements = async (data: any) => {
 };
 
 export const getContactInfo = async () => {
-  const contactData = await getData('contact', defaultContactInfo);
-  return contactData.map((contact: any) => {
-    const defaultContact = defaultContactInfo.find(c => c.label === contact.label);
-    return { ...contact, icon: defaultContact?.icon || defaultContactInfo[0].icon };
-  });
+  const contact = await getData('contact', []);
+  if (!contact || contact.length === 0) return defaultContactInfo;
+  return contact;
 };
 
 export const saveContactInfo = async (data: any) => {
@@ -201,11 +196,9 @@ export const saveContactInfo = async (data: any) => {
 };
 
 export const getSocials = async () => {
-  const socialsData = await getData('socials', defaultSocials);
-  return socialsData.map((social: any) => {
-    const defaultSocial = defaultSocials.find(s => s.label === social.label);
-    return { ...social, icon: defaultSocial?.icon || defaultSocials[0].icon };
-  });
+  const socials = await getData('socials', []);
+  if (!socials || socials.length === 0) return defaultSocials;
+  return socials;
 };
 
 export const saveSocials = async (data: any) => {
@@ -214,7 +207,8 @@ export const saveSocials = async (data: any) => {
 };
 
 export const getChapters = async () => {
-  return await getData('chapters', defaultChapters);
+  const chapters = await getData('chapters', []);
+  return chapters && chapters.length > 0 ? chapters : defaultChapters;
 };
 
 export const saveChapters = async (data: any) => {
@@ -222,7 +216,8 @@ export const saveChapters = async (data: any) => {
 };
 
 export const getTechStack = async () => {
-  return await getData('techstack', defaultTechStack);
+  const techstack = await getData('techstack', []);
+  return techstack && techstack.length > 0 ? techstack : defaultTechStack;
 };
 
 export const saveTechStack = async (data: any) => {
@@ -230,29 +225,16 @@ export const saveTechStack = async (data: any) => {
 };
 
 export const getAboutContent = async () => {
-  const aboutData = await getData('about', defaultAbout);
-  if (aboutData.highlights) {
-    aboutData.highlights = aboutData.highlights.map((highlight: any) => {
-      const defaultHighlight = defaultAbout.highlights.find((h: any) => h.title === highlight.title);
-      return { ...highlight, icon: defaultHighlight?.icon || defaultAbout.highlights[0].icon };
-    });
-  }
-  return aboutData;
+  return await getAbout();
 };
 
 export const saveAboutContent = async (data: any) => {
-  const dataToSave = {
-    ...data,
-    highlights: data.highlights?.map(({ icon, ...rest }: any) => rest) || []
-  };
-  await saveData('about', dataToSave);
+  await saveAbout(data);
 };
 
 export const deleteAllData = async () => {
   if (typeof window === 'undefined') return;
-  // We don't usually delete global Firestore data this way, but if needed:
-  const docRef = doc(db, COLLECTION_NAME, DOCUMENT_ID);
-  await setDoc(docRef, {});
+  const dataRef = ref(db, DATA_PATH);
+  await set(dataRef, null);
   await initializeData();
 };
-

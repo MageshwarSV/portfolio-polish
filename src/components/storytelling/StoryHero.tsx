@@ -36,35 +36,21 @@ const StoryHero = () => {
 
   return (
     <section ref={containerRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background grid - Simplified on mobile */}
-      {config.enableComplexAnimations && (
-        <div className="absolute inset-0 opacity-20">
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `
-                linear-gradient(hsl(var(--primary) / 0.1) 1px, transparent 1px),
-                linear-gradient(90deg, hsl(var(--primary) / 0.1) 1px, transparent 1px)
-              `,
-              backgroundSize: "80px 80px",
-            }}
-          />
-        </div>
-      )}
+      {/* Background orbs */}
 
       {/* Gradient orbs - Only show on desktop/systems */}
       {config.enableComplexAnimations && (
         <>
           <motion.div
-            className="absolute top-1/4 -left-32 w-[400px] h-[400px] rounded-full blur-[128px] opacity-30 hidden md:block"
+            className="absolute top-1/4 -left-32 w-[400px] h-[400px] rounded-full blur-[128px] opacity-10 hidden md:block" // Reduced from 0.3
             style={{ background: "var(--gradient-primary)" }}
-            animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.3, 0.2] }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.05, 0.15, 0.05] }} // Drastic reduction
             transition={{ duration: 8 * config.animationDuration, repeat: Infinity, ease: "easeInOut" }}
           />
           <motion.div
-            className="absolute bottom-1/4 -right-32 w-[350px] h-[350px] rounded-full blur-[128px] opacity-20 hidden md:block"
+            className="absolute bottom-1/4 -right-32 w-[350px] h-[350px] rounded-full blur-[128px] opacity-10 hidden md:block" // Reduced from 0.2
             style={{ background: "var(--gradient-accent)" }}
-            animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.25, 0.15] }}
+            animate={{ scale: [1.2, 1, 1.2], opacity: [0.03, 0.1, 0.03] }} // Drastic reduction
             transition={{ duration: 10 * config.animationDuration, repeat: Infinity, ease: "easeInOut" }}
           />
         </>

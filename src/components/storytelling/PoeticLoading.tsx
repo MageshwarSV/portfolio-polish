@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect, useMemo } from "react";
+import { isMobileDevice } from "@/lib/deviceDetection";
 
 const quotes = [
     "Every line of code tells a story...",
@@ -7,14 +8,6 @@ const quotes = [
     "Every project changes the world...",
     "Let me show you mine.",
 ];
-
-// Check if device is mobile/low-performance
-const isMobileDevice = () => {
-    if (typeof window === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        || window.innerWidth <= 768
-        || 'ontouchstart' in window;
-};
 
 // Floating code particles
 const CodeParticle = ({ delay, duration }: { delay: number; duration: number }) => {
@@ -228,14 +221,7 @@ const PoeticLoading = ({ onComplete, isDataReady = true }: { onComplete: () => v
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.8, ease: [0.76, 0, 0.24, 1] }}
                 >
-                    {/* Background grid */}
-                    <div
-                        className="absolute inset-0 opacity-5"
-                        style={{
-                            backgroundImage: `linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)`,
-                            backgroundSize: "60px 60px",
-                        }}
-                    />
+                    {/* Background orbs */}
 
                     {/* Gradient orbs - Simplified on mobile */}
                     {!isMobileDevice() ? (

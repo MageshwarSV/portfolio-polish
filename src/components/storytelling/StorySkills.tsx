@@ -126,7 +126,7 @@ const StorySkills = () => {
                   className="h-full bg-gradient-to-r from-primary to-accent"
                   initial={{ width: 0 }}
                   whileInView={{ width: `${xpProgress}%` }}
-                  viewport={{ once: false }}
+                  viewport={{ once: true, margin: "-50px" }}
                   transition={{ duration: 1, ease: "easeOut" }}
                 />
               </div>
@@ -238,8 +238,8 @@ const StorySkills = () => {
                             }}
                             initial={{ width: 0 }}
                             whileInView={{ width: `${skill.level}%` }}
-                            viewport={{ once: false }}
-                            transition={{ duration: 0.6, delay: index * 0.1 }}
+                            viewport={{ once: true, margin: "-50px" }}
+                            transition={{ duration: 0.8, delay: index * 0.1 }}
                           />
                         </div>
                       </div>

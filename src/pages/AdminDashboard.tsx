@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isAuthenticated, logout } from '@/lib/adminAuth';
+import { isAuthenticated, logout, checkSessionExpiry, getSessionInfo } from '@/lib/adminAuth';
 import {
   getExperiences, saveExperiences,
   getProjects, saveProjects,
@@ -13,9 +13,11 @@ import {
   getSocials, saveSocials,
   getChapters, saveChapters,
   getTechStack, saveTechStack,
-  initializeData
+  initializeData,
+  deleteAllData
 } from '@/lib/portfolioData';
-import { Briefcase, FolderGit2, Code2, User, Settings, LogOut, Plus, Trash2, Save, Star, Award, Trophy, Link2, Mail, Scissors } from 'lucide-react';
+import { getThemeSettings, saveThemeSettings, defaultThemeSettings, ThemeSettings, applyTheme, resetThemeSettings, getCustomPresets, saveCustomPreset, deleteCustomPreset, CustomPreset } from '@/lib/themeSettings';
+import { Briefcase, FolderGit2, Code2, User, Settings, LogOut, Plus, Trash2, Save, Star, Award, Trophy, Link2, Mail, Scissors, RefreshCw, Cloud, Wifi, Clock, Palette, X } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
 import {
@@ -28,7 +30,7 @@ import {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'experiences' | 'projects' | 'skills' | 'about' | 'personal' | 'certifications' | 'contact' | 'navigation'>('experiences');
+  const [activeTab, setActiveTab] = useState<'experiences' | 'projects' | 'skills' | 'about' | 'personal' | 'certifications' | 'contact' | 'navigation' | 'appearance'>('experiences');
   const [experiences, setExperiences] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
@@ -41,6 +43,7 @@ const AdminDashboard = () => {
   const [chapters, setChapters] = useState<any[]>([]);
   const [techStack, setTechStack] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   // Image Cropping State
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
@@ -48,18 +51,70 @@ const AdminDashboard = () => {
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [sessionTimeLeft, setSessionTimeLeft] = useState<string>('');
+
+  // Theme Settings State
+  const [themeSettings, setThemeSettings] = useState<any>(null);
+  const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
+  const [presetName, setPresetName] = useState('');
+  const [showSavePresetModal, setShowSavePresetModal] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('admin-panel');
+
+    // Check session expiry first
+    checkSessionExpiry();
 
     if (!isAuthenticated()) {
       navigate('/admin');
       return;
     }
-    initializeData();
-    loadData();
 
-    return () => document.body.classList.remove('admin-panel');
+    // CRITICAL: We must await initializeData to ensure defaults are pushed to
+    // Firebase BEFORE loadData reads from it. Otherwise the panel shows empty.
+    const initAndLoad = async () => {
+      await initializeData();
+      await loadData();
+    };
+    initAndLoad();
+
+    // Session expiry timer - check every minute
+    const sessionTimer = setInterval(() => {
+      checkSessionExpiry();
+      if (!isAuthenticated()) {
+        navigate('/admin');
+        return;
+      }
+
+      // Update time left display
+      const session = getSessionInfo();
+      if (session) {
+        const timeLeft = session.expiryTime - Date.now();
+        if (timeLeft > 0) {
+          const minutes = Math.floor(timeLeft / 60000);
+          const hours = Math.floor(minutes / 60);
+          const mins = minutes % 60;
+          setSessionTimeLeft(hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
+        }
+      }
+    }, 60000);
+
+    // Initial time left calculation
+    const session = getSessionInfo();
+    if (session) {
+      const timeLeft = session.expiryTime - Date.now();
+      if (timeLeft > 0) {
+        const minutes = Math.floor(timeLeft / 60000);
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        setSessionTimeLeft(hours > 0 ? `${hours}h ${mins}m` : `${mins}m`);
+      }
+    }
+
+    return () => {
+      document.body.classList.remove('admin-panel');
+      clearInterval(sessionTimer);
+    };
   }, [navigate]);
 
   const loadData = async () => {
@@ -74,6 +129,8 @@ const AdminDashboard = () => {
     setSocials(await getSocials());
     setChapters(await getChapters());
     setTechStack(await getTechStack());
+    setThemeSettings(await getThemeSettings());
+    setCustomPresets(await getCustomPresets());
   };
 
   const handleLogout = () => {
@@ -85,33 +142,60 @@ const AdminDashboard = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
 
-    // Force a small delay to ensure localStorage writes complete
-    setTimeout(() => {
-      // Set update timestamp to trigger storage event
-      localStorage.setItem('portfolio_last_update', Date.now().toString());
+    // Set update timestamp to trigger storage event for the portfolio site
+    localStorage.setItem('portfolio_last_update', Date.now().toString());
 
-      // Trigger custom event for same-tab updates
-      window.dispatchEvent(new CustomEvent('portfolio_data_updated'));
+    // Trigger custom event for same-tab updates (for portfolio site)
+    window.dispatchEvent(new CustomEvent('portfolio_data_updated'));
 
-      // Reload data in admin panel
-      loadData();
-    }, 50);
+    // NOTE: We intentionally do NOT call loadData() here.
+    // The React state already has the user's edits, and calling loadData()
+    // can cause a race condition where stale cached data overwrites
+    // the just-saved changes. The portfolio site uses real-time listeners
+    // to pick up changes independently.
+  };
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      await initializeData();
+      await loadData();
+      showSavedMessage();
+    } catch (error) {
+      console.error("Manual sync failed:", error);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   // Experience Management
   const addExperience = () => {
+    const currentYear = new Date().getFullYear();
+
+    // Mark all previous "Present" experiences as completed with current year
+    const updatedExperiences = experiences.map((exp: any) => {
+      if (exp.period?.includes('Present')) {
+        // Replace "Present" with current year
+        const updatedPeriod = exp.period.replace('Present', currentYear.toString());
+        return { ...exp, period: updatedPeriod, type: 'completed' };
+      }
+      return exp;
+    });
+
     const maxId = experiences.length > 0 ? Math.max(...experiences.map((e: any) => e.id || 0)) : 0;
     const newExp = {
       id: maxId + 1,
       title: 'New Role',
       company: 'Company Name',
-      period: `${new Date().getFullYear()} - Present`,
+      period: `${currentYear} - Present`,
       type: 'current',
       description: 'Role description',
       highlights: ['Achievement 1', 'Achievement 2', 'Achievement 3'],
       color: 'primary'
     };
-    setExperiences([...experiences, newExp]);
+
+    // Add new experience at the beginning (most recent first)
+    setExperiences([newExp, ...updatedExperiences]);
   };
 
   const updateExperience = (index: number, field: string, value: any) => {
@@ -358,12 +442,19 @@ const AdminDashboard = () => {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={handleDeleteAllData}
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-lg hover:bg-yellow-500/20 transition-colors"
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
-              Delete All Data
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+              {isSyncing ? "Syncing..." : "Force Cloud Sync"}
             </button>
+            {sessionTimeLeft && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg text-sm text-muted-foreground">
+                <Clock className="w-4 h-4" />
+                <span>Session: {sessionTimeLeft}</span>
+              </div>
+            )}
             <a href="/" target="_blank" className="text-sm text-primary hover:underline">
               View Live Site
             </a>
@@ -396,7 +487,8 @@ const AdminDashboard = () => {
             { id: 'contact', label: 'Contact & Social', icon: Link2 },
             { id: 'navigation', label: 'Navigation', icon: Settings },
             { id: 'about', label: 'About', icon: User },
-            { id: 'personal', label: 'Personal Info', icon: Settings }
+            { id: 'personal', label: 'Personal Info', icon: Settings },
+            { id: 'appearance', label: 'Appearance', icon: Palette }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -671,6 +763,15 @@ const AdminDashboard = () => {
                         className="w-full px-3 py-2 bg-card border border-border rounded text-foreground text-sm file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-primary file:text-primary-foreground hover:file:opacity-90 file:cursor-pointer cursor-pointer"
                       />
                       <p className="text-xs text-muted-foreground">Max 3MB. Recommended: 1200x600px</p>
+                      {project.image && (
+                        <button
+                          onClick={() => updateProject(index, 'image', '')}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-500 rounded hover:bg-red-500/20 text-sm w-fit"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Remove Image
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -1862,6 +1963,550 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Appearance Tab */}
+        {activeTab === 'appearance' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-bold text-foreground">Appearance Settings</h2>
+                <p className="text-sm text-muted-foreground">Customize colors, particles, and visual effects</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    await resetThemeSettings();
+                    const newSettings = await getThemeSettings();
+                    setThemeSettings(newSettings);
+                    showSavedMessage();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-lg hover:bg-yellow-500/20 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Reset to Defaults
+                </button>
+                <button
+                  onClick={async () => {
+                    if (themeSettings) {
+                      await saveThemeSettings(themeSettings);
+                      applyTheme(themeSettings);
+                      showSavedMessage();
+                    }
+                  }}
+                  className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Changes
+                </button>
+              </div>
+            </div>
+
+            {themeSettings ? (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Color Presets Section */}
+                <div className="bg-card border border-border rounded-xl p-6 lg:col-span-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <Palette className="w-5 h-5 text-primary" />
+                    Color Theme Presets
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                    {/* Emerald Theme */}
+                    <button
+                      onClick={() => setThemeSettings({
+                        ...themeSettings,
+                        colors: { primary: '#10b981', accent: '#8b5cf6', background: '#030712', backgroundAlt: '#0f172a', foreground: '#f8fafc', muted: '#94a3b8' }
+                      })}
+                      className={`p-4 rounded-xl border-2 transition-all text-center ${themeSettings.colors.primary === '#10b981'
+                        ? 'border-[#10b981] shadow-[0_0_20px_rgba(16,185,129,0.4)] bg-[#10b981]/10'
+                        : 'border-border hover:border-primary'
+                        }`}
+                    >
+                      <div className="flex gap-1 justify-center mb-2">
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#10b981' }} />
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#8b5cf6' }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Emerald</span>
+                    </button>
+
+                    {/* Ocean Blue */}
+                    <button
+                      onClick={() => setThemeSettings({
+                        ...themeSettings,
+                        colors: { primary: '#0ea5e9', accent: '#6366f1', background: '#020617', backgroundAlt: '#0f172a', foreground: '#f8fafc', muted: '#94a3b8' }
+                      })}
+                      className={`p-4 rounded-xl border-2 transition-all text-center ${themeSettings.colors.primary === '#0ea5e9'
+                        ? 'border-[#0ea5e9] shadow-[0_0_20px_rgba(14,165,233,0.4)] bg-[#0ea5e9]/10'
+                        : 'border-border hover:border-primary'
+                        }`}
+                    >
+                      <div className="flex gap-1 justify-center mb-2">
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#0ea5e9' }} />
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#6366f1' }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Ocean</span>
+                    </button>
+
+                    {/* Sunset */}
+                    <button
+                      onClick={() => setThemeSettings({
+                        ...themeSettings,
+                        colors: { primary: '#f97316', accent: '#ec4899', background: '#0c0a09', backgroundAlt: '#1c1917', foreground: '#fafaf9', muted: '#a8a29e' }
+                      })}
+                      className={`p-4 rounded-xl border-2 transition-all text-center ${themeSettings.colors.primary === '#f97316'
+                        ? 'border-[#f97316] shadow-[0_0_20px_rgba(249,115,22,0.4)] bg-[#f97316]/10'
+                        : 'border-border hover:border-primary'
+                        }`}
+                    >
+                      <div className="flex gap-1 justify-center mb-2">
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#f97316' }} />
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#ec4899' }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Sunset</span>
+                    </button>
+
+                    {/* Forest */}
+                    <button
+                      onClick={() => setThemeSettings({
+                        ...themeSettings,
+                        colors: { primary: '#22c55e', accent: '#14b8a6', background: '#022c22', backgroundAlt: '#064e3b', foreground: '#ecfdf5', muted: '#6ee7b7' }
+                      })}
+                      className={`p-4 rounded-xl border-2 transition-all text-center ${themeSettings.colors.primary === '#22c55e'
+                        ? 'border-[#22c55e] shadow-[0_0_20px_rgba(34,197,94,0.4)] bg-[#22c55e]/10'
+                        : 'border-border hover:border-primary'
+                        }`}
+                    >
+                      <div className="flex gap-1 justify-center mb-2">
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: '#14b8a6' }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">Forest</span>
+                    </button>
+
+                    {/* Random */}
+                    <button
+                      onClick={() => {
+                        const randomHex = () => '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+                        setThemeSettings({
+                          ...themeSettings,
+                          colors: {
+                            primary: randomHex(),
+                            accent: randomHex(),
+                            background: '#030712',
+                            backgroundAlt: '#0f172a',
+                            foreground: '#f8fafc',
+                            muted: '#94a3b8'
+                          }
+                        });
+                      }}
+                      className="p-4 rounded-xl border-2 border-dashed border-border hover:border-primary transition-all text-center bg-gradient-to-br from-red-500/10 via-green-500/10 to-blue-500/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.2)]"
+                    >
+                      <div className="flex gap-1 justify-center mb-2">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-r from-red-500 via-yellow-500 to-blue-500" />
+                      </div>
+                      <span className="text-xs text-muted-foreground">🎲 Random</span>
+                    </button>
+
+                    {/* Custom - Shows current colors */}
+                    <button
+                      onClick={() => {
+                        // If currently on a preset, modify the color slightly to unlock custom mode
+                        const presetColors = ['#10b981', '#0ea5e9', '#f97316', '#22c55e'];
+                        if (presetColors.includes(themeSettings.colors.primary)) {
+                          // Set to a custom color that unlocks the pickers
+                          setThemeSettings({
+                            ...themeSettings,
+                            colors: {
+                              ...themeSettings.colors,
+                              primary: '#10b982', // Slightly different to unlock
+                              accent: '#8b5cf7'  // Slightly different
+                            }
+                          });
+                        }
+                        // Scroll to custom colors section
+                        setTimeout(() => {
+                          document.getElementById('custom-colors-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                      }}
+                      className={`p-4 rounded-xl border-2 transition-all text-center ${!['#10b981', '#0ea5e9', '#f97316', '#22c55e'].includes(themeSettings.colors.primary)
+                        ? `border-current shadow-[0_0_20px_currentColor] bg-current/10`
+                        : 'border-border hover:border-primary'
+                        }`}
+                      style={{
+                        borderColor: !['#10b981', '#0ea5e9', '#f97316', '#22c55e'].includes(themeSettings.colors.primary) ? themeSettings.colors.primary : undefined,
+                        boxShadow: !['#10b981', '#0ea5e9', '#f97316', '#22c55e'].includes(themeSettings.colors.primary) ? `0 0 20px ${themeSettings.colors.primary}40` : undefined,
+                        backgroundColor: !['#10b981', '#0ea5e9', '#f97316', '#22c55e'].includes(themeSettings.colors.primary) ? `${themeSettings.colors.primary}15` : undefined
+                      }}
+                    >
+                      <div className="flex gap-1 justify-center mb-2">
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: themeSettings.colors.primary }} />
+                        <div className="w-6 h-6 rounded-full" style={{ backgroundColor: themeSettings.colors.accent }} />
+                      </div>
+                      <span className="text-xs text-muted-foreground">🎨 Custom</span>
+                    </button>
+
+                    {/* Saved Custom Presets */}
+                    {customPresets.map((preset) => (
+                      <div key={preset.id} className="relative group">
+                        <button
+                          onClick={() => setThemeSettings({
+                            ...themeSettings,
+                            colors: {
+                              primary: preset.primary,
+                              accent: preset.accent,
+                              background: preset.background,
+                              backgroundAlt: preset.backgroundAlt,
+                              foreground: preset.foreground,
+                              muted: preset.muted
+                            }
+                          })}
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-center ${themeSettings.colors.primary === preset.primary
+                            ? `border-current shadow-[0_0_20px_currentColor]`
+                            : 'border-border hover:border-primary'
+                            }`}
+                          style={{
+                            borderColor: themeSettings.colors.primary === preset.primary ? preset.primary : undefined,
+                            boxShadow: themeSettings.colors.primary === preset.primary ? `0 0 20px ${preset.primary}40` : undefined,
+                            backgroundColor: themeSettings.colors.primary === preset.primary ? `${preset.primary}15` : undefined
+                          }}
+                        >
+                          <div className="flex gap-1 justify-center mb-2">
+                            <div className="w-6 h-6 rounded-full" style={{ backgroundColor: preset.primary }} />
+                            <div className="w-6 h-6 rounded-full" style={{ backgroundColor: preset.accent }} />
+                          </div>
+                          <span className="text-xs text-muted-foreground truncate block">{preset.name}</span>
+                        </button>
+                        {/* Delete button */}
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (confirm('Delete this preset?')) {
+                              await deleteCustomPreset(preset.id);
+                              setCustomPresets(await getCustomPresets());
+                            }
+                          }}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Save as Preset Button */}
+                  {!['#10b981', '#0ea5e9', '#f97316', '#22c55e'].includes(themeSettings.colors.primary) && (
+                    <div className="mt-4 flex items-center gap-3">
+                      <input
+                        type="text"
+                        placeholder="Enter preset name..."
+                        value={presetName}
+                        onChange={(e) => setPresetName(e.target.value)}
+                        className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground"
+                      />
+                      <button
+                        onClick={async () => {
+                          if (presetName.trim()) {
+                            await saveCustomPreset(presetName.trim(), themeSettings.colors);
+                            setCustomPresets(await getCustomPresets());
+                            setPresetName('');
+                            showSavedMessage();
+                          }
+                        }}
+                        disabled={!presetName.trim()}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 disabled:opacity-50 flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Save as Preset
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Custom Colors Section */}
+                {(() => {
+                  const isPresetSelected = ['#10b981', '#0ea5e9', '#f97316', '#22c55e'].includes(themeSettings.colors.primary);
+                  return (
+                    <div id="custom-colors-section" className={`bg-card border border-border rounded-xl p-6 ${isPresetSelected ? 'opacity-50' : ''}`}>
+                      <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                        🎨 Custom Colors
+                        {isPresetSelected && (
+                          <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded-full ml-2">
+                            🔒 Click "Custom" preset to edit
+                          </span>
+                        )}
+                      </h3>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Primary Color</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={themeSettings.colors.primary}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, primary: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`w-12 h-12 rounded-lg border-2 border-border ${isPresetSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            />
+                            <input
+                              type="text"
+                              value={themeSettings.colors.primary}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, primary: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`flex-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground font-mono ${isPresetSelected ? 'cursor-not-allowed' : ''}`}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Accent Color (Glow)</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={themeSettings.colors.accent}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, accent: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`w-12 h-12 rounded-lg border-2 border-border ${isPresetSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            />
+                            <input
+                              type="text"
+                              value={themeSettings.colors.accent}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, accent: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`flex-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground font-mono ${isPresetSelected ? 'cursor-not-allowed' : ''}`}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Background Color</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={themeSettings.colors.background}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, background: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`w-12 h-12 rounded-lg border-2 border-border ${isPresetSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            />
+                            <input
+                              type="text"
+                              value={themeSettings.colors.background}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, background: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`flex-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground font-mono ${isPresetSelected ? 'cursor-not-allowed' : ''}`}
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-2">Text Color</label>
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={themeSettings.colors.foreground}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, foreground: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`w-12 h-12 rounded-lg border-2 border-border ${isPresetSelected ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                            />
+                            <input
+                              type="text"
+                              value={themeSettings.colors.foreground}
+                              onChange={(e) => setThemeSettings({
+                                ...themeSettings,
+                                colors: { ...themeSettings.colors, foreground: e.target.value }
+                              })}
+                              disabled={isPresetSelected}
+                              className={`flex-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground font-mono ${isPresetSelected ? 'cursor-not-allowed' : ''}`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Particles Section */}
+                <div className="bg-card border border-border rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    ✨ Particle Effects
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">Enable Particles</label>
+                      <button
+                        onClick={() => setThemeSettings({
+                          ...themeSettings,
+                          particles: { ...themeSettings.particles, enabled: !themeSettings.particles.enabled }
+                        })}
+                        className={`w-12 h-6 rounded-full transition-colors ${themeSettings.particles.enabled ? 'bg-primary' : 'bg-secondary'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${themeSettings.particles.enabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Particle Count: {themeSettings.particles.count}
+                      </label>
+                      <input
+                        type="range"
+                        min="5"
+                        max="50"
+                        value={themeSettings.particles.count}
+                        onChange={(e) => setThemeSettings({
+                          ...themeSettings,
+                          particles: { ...themeSettings.particles, count: parseInt(e.target.value) }
+                        })}
+                        className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">Tech Labels (Python, React, etc.)</label>
+                      <button
+                        onClick={() => setThemeSettings({
+                          ...themeSettings,
+                          particles: { ...themeSettings.particles, techLabels: !themeSettings.particles.techLabels }
+                        })}
+                        className={`w-12 h-6 rounded-full transition-colors ${themeSettings.particles.techLabels ? 'bg-primary' : 'bg-secondary'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${themeSettings.particles.techLabels ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">Neural Network Lines</label>
+                      <button
+                        onClick={() => setThemeSettings({
+                          ...themeSettings,
+                          particles: { ...themeSettings.particles, neuralLines: !themeSettings.particles.neuralLines }
+                        })}
+                        className={`w-12 h-6 rounded-full transition-colors ${themeSettings.particles.neuralLines ? 'bg-primary' : 'bg-secondary'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${themeSettings.particles.neuralLines ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <label className="text-sm font-medium text-foreground">Glowing Orbs</label>
+                      <button
+                        onClick={() => setThemeSettings({
+                          ...themeSettings,
+                          particles: { ...themeSettings.particles, orbsEnabled: !themeSettings.particles.orbsEnabled }
+                        })}
+                        className={`w-12 h-6 rounded-full transition-colors ${themeSettings.particles.orbsEnabled ? 'bg-primary' : 'bg-secondary'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${themeSettings.particles.orbsEnabled ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">
+                        Orbs Opacity: {themeSettings.particles.orbsOpacity}%
+                      </label>
+                      <input
+                        type="range"
+                        min="1"
+                        max="30"
+                        value={themeSettings.particles.orbsOpacity}
+                        onChange={(e) => setThemeSettings({
+                          ...themeSettings,
+                          particles: { ...themeSettings.particles, orbsOpacity: parseInt(e.target.value) }
+                        })}
+                        className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Effects Section */}
+                <div className="bg-card border border-border rounded-xl p-6 lg:col-span-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    🎨 Additional Effects
+                  </h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg">
+                      <button
+                        onClick={() => setThemeSettings({
+                          ...themeSettings,
+                          effects: { ...themeSettings.effects, customCursor: !themeSettings.effects.customCursor }
+                        })}
+                        className={`w-12 h-6 rounded-full transition-colors ${themeSettings.effects.customCursor ? 'bg-primary' : 'bg-secondary'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${themeSettings.effects.customCursor ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                      <span className="text-sm text-muted-foreground">Custom Cursor</span>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg">
+                      <button
+                        onClick={() => setThemeSettings({
+                          ...themeSettings,
+                          effects: { ...themeSettings.effects, smoothScroll: !themeSettings.effects.smoothScroll }
+                        })}
+                        className={`w-12 h-6 rounded-full transition-colors ${themeSettings.effects.smoothScroll ? 'bg-primary' : 'bg-secondary'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${themeSettings.effects.smoothScroll ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                      <span className="text-sm text-muted-foreground">Smooth Scroll</span>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg">
+                      <button
+                        onClick={() => setThemeSettings({
+                          ...themeSettings,
+                          effects: { ...themeSettings.effects, noiseOverlay: !themeSettings.effects.noiseOverlay }
+                        })}
+                        className={`w-12 h-6 rounded-full transition-colors ${themeSettings.effects.noiseOverlay ? 'bg-primary' : 'bg-secondary'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${themeSettings.effects.noiseOverlay ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                      </button>
+                      <span className="text-sm text-muted-foreground">Noise Overlay</span>
+                    </div>
+
+                    <div className="flex flex-col items-center gap-2 p-4 bg-background rounded-lg">
+                      <div className="text-sm text-muted-foreground mb-1">Noise: {themeSettings.effects.noiseOpacity}%</div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                        value={themeSettings.effects.noiseOpacity}
+                        onChange={(e) => setThemeSettings({
+                          ...themeSettings,
+                          effects: { ...themeSettings.effects, noiseOpacity: parseFloat(e.target.value) }
+                        })}
+                        className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">Loading theme settings...</p>
+              </div>
+            )}
           </div>
         )}
       </div>
