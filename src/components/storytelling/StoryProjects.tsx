@@ -132,12 +132,12 @@ const StoryProjects = () => {
 
                 {/* Content */}
                 <div className="p-6 bg-background">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${project.color === "primary" ? "bg-primary/20" : "bg-accent/20"
+                  <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-4">
+                    <div className="flex-1 w-full flex flex-col items-center md:items-start text-center md:text-left">
+                      <div className="flex flex-col md:flex-row items-center gap-3 mb-4 md:mb-2">
+                        <div className={`w-14 h-14 md:w-12 md:h-12 rounded-xl flex items-center justify-center shrink-0 ${project.color === "primary" ? "bg-primary/20" : "bg-accent/20"
                           }`}>
-                          <project.icon className={`w-6 h-6 ${project.color === "primary" ? "text-primary" : "text-accent"
+                          <project.icon className={`w-7 h-7 md:w-6 md:h-6 ${project.color === "primary" ? "text-primary" : "text-accent"
                             }`} />
                         </div>
                         <div>
@@ -148,12 +148,12 @@ const StoryProjects = () => {
                         </div>
                       </div>
 
-                      <p className="text-muted-foreground mb-4 line-clamp-2">
+                      <p className="text-muted-foreground mb-4 line-clamp-2 max-w-sm mx-auto md:mx-0">
                         {project.description}
                       </p>
 
                       {/* Features */}
-                      <div className="space-y-2 mb-4">
+                      <div className="space-y-2 mb-4 w-full flex flex-col items-center md:items-start">
                         {project.features.slice(0, 3).map((feature: string, i: number) => (
                           <div key={i} className="flex items-center gap-2 text-sm text-foreground/80">
                             <span className={`w-1.5 h-1.5 rounded-full ${project.color === "primary" ? "bg-primary" : "bg-accent"
@@ -164,7 +164,7 @@ const StoryProjects = () => {
                       </div>
 
                       {/* Tags */}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap justify-center md:justify-start gap-2 w-full">
                         {project.tags.map((tag: string) => (
                           <span
                             key={tag}

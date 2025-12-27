@@ -107,27 +107,32 @@ export const prefersReducedMotion = (): boolean => {
 export const calculatePerformanceScore = (): number => {
   if (typeof window === 'undefined') return 50;
 
-  let score = 60; // Increased base score for modern web
+  let score = 40; // Reduced base score (was 60)
 
   // CPU cores (navigator.hardwareConcurrency)
   const cores = navigator.hardwareConcurrency || 2;
-  if (cores >= 8) score += 20;
+  if (cores >= 8) score += 25;
+  else if (cores >= 6) score += 15;
   else if (cores >= 4) score += 10;
-  else if (cores >= 2) score += 5;
-  else score -= 10;
+  else score += 0; // Dual core or less gets nothing
 
-  // Memory (if available)
+  // Memory (if available, typical defaults to 4 or 8 in browsers to prevent fingerprinting)
+  // But we can check for low values
   const memory = (navigator as any).deviceMemory || 4;
-  if (memory >= 8) score += 15;
-  else if (memory >= 4) score += 10;
-  else if (memory >= 2) score += 5;
-  else score -= 10;
+  if (memory >= 16) score += 20;
+  else if (memory >= 8) score += 15;
+  else if (memory >= 4) score += 5;
+  else score -= 10; // 2GB or less is penalty
 
-  // Screen resolution
+  // GPU Tier Impact (Estimated)
+  const gpuInfo = detectGPU();
+  if (gpuInfo.gpuTier === 'high') score += 20;
+  if (gpuInfo.gpuTier === 'low') score -= 10; // Integrated/Weak GPU penalty
+
+  // Screen resolution penalty for high-res on weak hardware
   const pixelRatio = window.devicePixelRatio || 1;
   const screenPixels = window.innerWidth * window.innerHeight * pixelRatio;
-  // Be less punitive for high-res desktops
-  if (screenPixels > 2560 * 1440 * 2) score -= 5;
+  if (screenPixels > 2560 * 1440 * 2) score -= 10;
 
   // Connection speed
   const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
@@ -271,20 +276,20 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
   // Mobile: Only basic slide and component load animations
   if (type === 'mobile' || type === 'tablet') {
     return {
-      enableParticles: false,
+      enableParticles: true, // Enable for ALL phones
       enableCustomCursor: false,
-      enableComplexAnimations: false, // Disables hover, float, parallax, etc.
+      enableComplexAnimations: true, // Keep slide animations
       enableSmoothScroll: false,
-      enableLoadingScreen: true, // Show loading screen on mobile
-      animationDuration: 0.6, // Only for slide/fade in
-      particleCount: 0,
+      enableLoadingScreen: true,
+      animationDuration: 0.6,
+      particleCount: 6, // Low count for battery savings
       targetFPS: 60,
-      useGPUAcceleration: false,
+      useGPUAcceleration: true,
     };
   }
 
-  // Desktop/PC: High performance (70+): All features enabled with 120fps if supported
-  if (performanceScore >= 70 && !reducedMotion) {
+  // Desktop: High Performance (Gaming PC / MacBook Pro)
+  if (performanceScore >= 80 && !reducedMotion) {
     return {
       enableParticles: true,
       enableCustomCursor: true,
@@ -292,38 +297,39 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
       enableSmoothScroll: true,
       enableLoadingScreen: true,
       animationDuration: 1,
-      particleCount: 20,
+      particleCount: 25, // Richer particles
       targetFPS: info.supportsHighRefreshRate ? 120 : 60,
       useGPUAcceleration: info.hasGPU,
     };
   }
 
-  // Desktop/PC: Medium performance (40-69): Reduced features with GPU optimization
-  if (performanceScore >= 40 && !reducedMotion) {
+  // Desktop: Medium Performance (Office Laptop / MacBook Air)
+  if (performanceScore >= 50 && !reducedMotion) {
     return {
       enableParticles: true,
       enableCustomCursor: true,
-      enableComplexAnimations: true,
-      enableSmoothScroll: true,
+      enableComplexAnimations: true, // Keep the nice slides
+      enableSmoothScroll: false, // Disable smooth scroll to save resources
       enableLoadingScreen: true,
       animationDuration: 0.8,
-      particleCount: 10,
+      particleCount: 12, // Moderate particles
       targetFPS: 60,
       useGPUAcceleration: info.hasGPU,
     };
   }
 
-  // Desktop/PC: Low performance (<40) or reduced motion preference: Minimal animations
+  // Desktop: Low Performance (Potato Laptop / Old Chromebook)
+  // key change: Enable animations but limit COUNT and DURATION
   return {
-    enableParticles: false,
-    enableCustomCursor: false,
-    enableComplexAnimations: false,
+    enableParticles: true, // KEEP particles!
+    enableCustomCursor: false, // System cursor is smoother on laggy screens
+    enableComplexAnimations: true, // KEEP slide animations!
     enableSmoothScroll: false,
-    enableLoadingScreen: false,
-    animationDuration: 0.5,
-    particleCount: 0,
-    targetFPS: 60,
-    useGPUAcceleration: info.hasGPU,
+    enableLoadingScreen: true,
+    animationDuration: 0.6, // Fast transitions feel snappier on slow devices
+    particleCount: 4, // Very few particles, but they exist!
+    targetFPS: 60, // Try for 60
+    useGPUAcceleration: true, // Force GPU usage to help CPU
   };
 };
 
