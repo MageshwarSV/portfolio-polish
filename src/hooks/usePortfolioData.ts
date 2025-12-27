@@ -76,54 +76,70 @@ export const usePortfolioData = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // 1. Try to load from cache first for instant load
+        const defaults = {
+            experiences: defaultExperiences,
+            projects: defaultProjects,
+            skills: defaultSkills,
+            about: defaultAbout,
+            personal: defaultPersonalInfo,
+            certifications: defaultCertifications,
+            achievements: defaultAchievements,
+            contact: [],
+            socials: [],
+            chapters: defaultChapters,
+            techstack: defaultTechStack,
+        };
+
+        // 1. Load from cache or defaults IMMEDIATELY so we never have a null state
         const cached = localStorage.getItem(CACHE_KEY);
         if (cached) {
             try {
                 const parsed = JSON.parse(cached);
                 setData(mapIcons(parsed));
-                setLoading(false);
+                // If we have cached data, we don't necessarily NEED to block the UI, 
+                // but we might want to wait for the latest sync for a second.
             } catch (e) {
                 console.warn("Failed to parse portfolio cache", e);
+                setData(defaults);
             }
+        } else {
+            setData(defaults);
         }
 
         const docRef = doc(db, 'portfolio', 'global_data');
+
+        // 2. Sync Timeout: Don't let the cloud sync hold up the user for more than 3 seconds
+        const syncTimeout = setTimeout(() => {
+            console.log("Cloud sync taking too long, proceeding with available data.");
+            setLoading(false);
+        }, 3000);
 
         const unsubscribe = onSnapshot(docRef, (docSnap) => {
             if (docSnap.exists()) {
                 const rawData = docSnap.data();
 
-                // 2. Update cache with fresh data
+                // 3. Update cache with fresh data
                 localStorage.setItem(CACHE_KEY, JSON.stringify(rawData));
 
-                // 3. Update state with mapped icons
+                // 4. Update state with mapped icons
                 setData(mapIcons(rawData));
             } else {
-                // Fallback to defaults if doc doesn't exist yet
-                const defaults = {
-                    experiences: defaultExperiences,
-                    projects: defaultProjects,
-                    skills: defaultSkills,
-                    about: defaultAbout,
-                    personal: defaultPersonalInfo,
-                    certifications: defaultCertifications,
-                    achievements: defaultAchievements,
-                    contact: [],
-                    socials: [],
-                    chapters: defaultChapters,
-                    techstack: defaultTechStack,
-                };
                 setData(defaults);
             }
+
+            // 5. Data is here (or confirmed missing)! Release the loading screen
             setLoading(false);
+            clearTimeout(syncTimeout);
         }, (error) => {
             console.error("Error listening to portfolio data:", error);
-            // If we have no data at all (no cache, firestore error), stop loading
             setLoading(false);
+            clearTimeout(syncTimeout);
         });
 
-        return () => unsubscribe();
+        return () => {
+            unsubscribe();
+            clearTimeout(syncTimeout);
+        };
     }, []);
 
     return { data, loading };

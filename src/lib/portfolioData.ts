@@ -73,6 +73,8 @@ const getData = async (key: string, defaultValue: any) => {
   return defaultValue;
 };
 
+const CACHE_KEY = 'portfolio_data_cache';
+
 const saveData = async (key: string, data: any) => {
   try {
     const docRef = doc(db, COLLECTION_NAME, DOCUMENT_ID);
@@ -80,6 +82,17 @@ const saveData = async (key: string, data: any) => {
       [key]: data,
       last_update: Date.now()
     });
+
+    // Sync local manual cache for instant loading on next refresh
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      const fullData = cached ? JSON.parse(cached) : {};
+      fullData[key] = data;
+      localStorage.setItem(CACHE_KEY, JSON.stringify(fullData));
+    } catch (e) {
+      console.warn('Failed to sync local cache on save:', e);
+    }
+
     // Trigger local events for compatibility
     localStorage.setItem('portfolio_last_update', Date.now().toString());
     window.dispatchEvent(new CustomEvent('portfolio_data_updated'));
