@@ -17,6 +17,7 @@ import { usePortfolio } from "@/contexts/PortfolioContext";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const { loading: dataLoading } = usePortfolio();
   const animationConfig = useAnimationConfig();
 
@@ -25,9 +26,14 @@ const Index = () => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
+  // Use a more stable loading flag that doesn't flicker once initial load is done
+  const shouldShowLoading = !hasLoadedOnce && (
+    (animationConfig.enableLoadingScreen && isLoading) || dataLoading
+  );
+
   // Hide scrollbar and prevent scroll during loading
   useEffect(() => {
-    if (isLoading || dataLoading) {
+    if (shouldShowLoading) {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
     } else {
@@ -39,31 +45,12 @@ const Index = () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
-  }, [isLoading, dataLoading]);
+  }, [shouldShowLoading]);
 
-  // Listen for admin panel updates - now components update live without refresh!
-  // This is just kept for backwards compatibility
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'portfolio_refresh_trigger') {
-        // Components now update live, but we can still force reload if needed
-        console.log('Portfolio data updated from admin panel');
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, []);
-
-  // Adjust initial loading state based on performance
-  const shouldShowLoading = (animationConfig.enableLoadingScreen && isLoading) || dataLoading;
-
-  // Handle loading completion - quotes are done, now load content
+  // Handle loading completion - quotes are done AND data is ready
   const handleLoadingComplete = () => {
     setIsLoading(false);
+    setHasLoadedOnce(true);
   };
 
   return (
@@ -71,7 +58,10 @@ const Index = () => {
       {/* Poetic Loading Screen with Quotes - Only on high-performance devices */}
       <AnimatePresence>
         {shouldShowLoading && (
-          <PoeticLoading onComplete={handleLoadingComplete} />
+          <PoeticLoading
+            onComplete={handleLoadingComplete}
+            isDataReady={!dataLoading}
+          />
         )}
       </AnimatePresence>
 

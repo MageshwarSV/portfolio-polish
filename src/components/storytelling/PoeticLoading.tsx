@@ -11,7 +11,7 @@ const quotes = [
 // Check if device is mobile/low-performance
 const isMobileDevice = () => {
     if (typeof window === 'undefined') return false;
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
         || window.innerWidth <= 768
         || 'ontouchstart' in window;
 };
@@ -173,7 +173,7 @@ const MorphingShape = () => (
     />
 );
 
-const PoeticLoading = ({ onComplete }: { onComplete: () => void }) => {
+const PoeticLoading = ({ onComplete, isDataReady = true }: { onComplete: () => void, isDataReady?: boolean }) => {
     const [currentLine, setCurrentLine] = useState(0);
     const [isComplete, setIsComplete] = useState(false);
     const isMobile = isMobileDevice();
@@ -187,21 +187,28 @@ const PoeticLoading = ({ onComplete }: { onComplete: () => void }) => {
     );
 
     useEffect(() => {
-        // Faster loading on mobile (33% faster)
+        // Line transition timing
         const duration = isMobile ? 1400 : 2100;
         const timers: NodeJS.Timeout[] = [];
-        
+
         quotes.forEach((_, index) => {
             timers.push(setTimeout(() => setCurrentLine(index), index * duration));
         });
-        timers.push(
-            setTimeout(() => {
-                setIsComplete(true);
-                setTimeout(onComplete, isMobile ? 400 : 800);
-            }, quotes.length * duration)
-        );
+
         return () => timers.forEach((t) => clearTimeout(t));
-    }, [onComplete, isMobile]);
+    }, [isMobile]);
+
+    // Handle completion only when BOTH animation is at last line AND data is ready
+    useEffect(() => {
+        if (currentLine === quotes.length - 1 && isDataReady && !isComplete) {
+            const timer = setTimeout(() => {
+                setIsComplete(true);
+                // Extra short delay before calling parent onComplete to allow exit animation
+                setTimeout(onComplete, isMobile ? 400 : 800);
+            }, isMobile ? 1000 : 1800);
+            return () => clearTimeout(timer);
+        }
+    }, [currentLine, isDataReady, isComplete, onComplete, isMobile]);
 
     return (
         <AnimatePresence>
@@ -342,7 +349,9 @@ const PoeticLoading = ({ onComplete }: { onComplete: () => void }) => {
                             animate={{ opacity: [0.3, 0.7, 0.3] }}
                             transition={{ duration: 2, repeat: Infinity }}
                         >
-                            Initializing Experience...
+                            {currentLine === quotes.length - 1 && !isDataReady
+                                ? "Synchronizing with cloud..."
+                                : "Initializing Experience..."}
                         </motion.p>
                     </div>
                 </motion.div>
