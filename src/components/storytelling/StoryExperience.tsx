@@ -137,7 +137,7 @@ const StoryExperience = () => {
                             <div className="mt-2">
                                 <TerminalLine prompt>
                                     <span className="text-foreground/90">
-                                        experience --get "{currentExp.company}"
+                                        experience --get "{currentExp?.company || "..."}"
                                     </span>
                                     {phase === "typing" && (
                                         <motion.span
@@ -148,6 +148,14 @@ const StoryExperience = () => {
                                     )}
                                 </TerminalLine>
                             </div>
+
+                            {/* Show basic loading state if no data yet */}
+                            {(!currentExp || loading) && (
+                                <div className="mt-8 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                                    <Loader2 className="w-8 h-8 animate-spin text-primary/40" />
+                                    <p className="text-xs font-mono">Initializing data stream...</p>
+                                </div>
+                            )}
 
                             {/* Connecting... (during typing phase) */}
                             {phase === "typing" && (
@@ -179,7 +187,7 @@ const StoryExperience = () => {
 
                             {/* Output - Line by line with delays */}
                             <AnimatePresence mode="wait">
-                                {(phase === "output" || phase === "loading_next") && (
+                                {currentExp && (phase === "output" || phase === "loading_next") && (
                                     <motion.div
                                         initial={{ opacity: 0 }}
                                         animate={{ opacity: 1 }}

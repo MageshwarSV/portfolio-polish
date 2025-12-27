@@ -13,9 +13,11 @@ import AIParticles from "@/components/storytelling/AIParticles";
 import PoeticLoading from "@/components/storytelling/PoeticLoading";
 import SmoothScrollProvider from "@/components/storytelling/SmoothScrollProvider";
 import CustomCursor from "@/components/storytelling/CustomCursor";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
+  const { loading: dataLoading } = usePortfolio();
   const animationConfig = useAnimationConfig();
 
   // Scroll to top on page load/refresh
@@ -25,7 +27,7 @@ const Index = () => {
 
   // Hide scrollbar and prevent scroll during loading
   useEffect(() => {
-    if (isLoading) {
+    if (isLoading || dataLoading) {
       document.body.style.overflow = 'hidden';
       document.documentElement.style.overflow = 'hidden';
     } else {
@@ -37,7 +39,7 @@ const Index = () => {
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
     };
-  }, [isLoading]);
+  }, [isLoading, dataLoading]);
 
   // Listen for admin panel updates - now components update live without refresh!
   // This is just kept for backwards compatibility
@@ -57,7 +59,7 @@ const Index = () => {
   }, []);
 
   // Adjust initial loading state based on performance
-  const shouldShowLoading = animationConfig.enableLoadingScreen && isLoading;
+  const shouldShowLoading = (animationConfig.enableLoadingScreen && isLoading) || dataLoading;
 
   // Handle loading completion - quotes are done, now load content
   const handleLoadingComplete = () => {
@@ -78,18 +80,18 @@ const Index = () => {
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ 
-            duration: 0.8 * animationConfig.animationDuration, 
-            delay: 0.2 * animationConfig.animationDuration 
+          transition={{
+            duration: 0.8 * animationConfig.animationDuration,
+            delay: 0.2 * animationConfig.animationDuration
           }}
         >
-        {animationConfig.enableSmoothScroll ? (
-          <SmoothScrollProvider>
+          {animationConfig.enableSmoothScroll ? (
+            <SmoothScrollProvider>
+              <PageContent animationConfig={animationConfig} />
+            </SmoothScrollProvider>
+          ) : (
             <PageContent animationConfig={animationConfig} />
-          </SmoothScrollProvider>
-        ) : (
-          <PageContent animationConfig={animationConfig} />
-        )}
+          )}
         </motion.div>
       )}
     </>

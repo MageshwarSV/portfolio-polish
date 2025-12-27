@@ -61,7 +61,7 @@ const StoryFooter = () => {
                   className="w-10 h-10 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-all"
                   aria-label={social.label}
                 >
-                  <social.icon className="w-4 h-4" />
+                  {social.icon && <social.icon className="w-4 h-4" />}
                 </motion.a>
               ))}
               <motion.a

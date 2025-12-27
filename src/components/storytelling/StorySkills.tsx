@@ -134,117 +134,121 @@ const StorySkills = () => {
           </div>
 
           {/* Skill Tree Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-            {skillCategories.map((category: any, index: number) => (
-              <button
-                key={`${category.title}-${index}`}
-                onClick={() => setSelectedCategory(index)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${selectedCategory === index
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
-                  }`}
-              >
-                <span className="text-lg">{category.skills[0]?.icon}</span>
-                {category.title}
-              </button>
-            ))}
-          </div>
-
-          {/* Selected Skill Tree */}
-          <motion.div
-            key={selectedCategory}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-            className="glass-card p-6"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${skillCategories[selectedCategory].color === "primary"
-                ? "bg-primary/20"
-                : "bg-accent/20"
-                }`}>
-                <span className="text-xl">{skillCategories[selectedCategory].skills[0]?.icon}</span>
-              </div>
-              <div>
-                <h3 className="font-display text-lg font-bold text-foreground">
-                  {skillCategories[selectedCategory].title}
-                </h3>
-                <span className="text-xs text-muted-foreground">
-                  {skillCategories[selectedCategory].skills.length} abilities unlocked
-                </span>
-              </div>
-            </div>
-
-            {/* Skills Grid */}
-            <div className="grid gap-4">
-              {skillCategories[selectedCategory].skills.map((skill: any, index: number) => (
-                <motion.div
-                  key={skill.name}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                  onMouseEnter={() => setHoveredSkill(skill.name)}
-                  onMouseLeave={() => setHoveredSkill(null)}
-                  className="group"
+          {skillCategories.length > 0 && (
+            <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+              {skillCategories.map((category: any, index: number) => (
+                <button
+                  key={`${category.title}-${index}`}
+                  onClick={() => setSelectedCategory(index)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${selectedCategory === index
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary/50 text-muted-foreground hover:bg-secondary"
+                    }`}
                 >
-                  <div className="flex items-center gap-4">
-                    {/* Skill Icon */}
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0 transition-all ${hoveredSkill === skill.name
-                      ? "bg-primary/30 scale-110"
-                      : "bg-secondary/50"
-                      }`}>
-                      {skill.icon}
-                    </div>
-
-                    {/* Skill Info */}
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="font-medium text-foreground group-hover:text-primary transition-colors">
-                          {skill.name}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {/* Skill Level Stars */}
-                          <div className="flex gap-0.5">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-3 h-3 ${i < Math.floor(skill.level / 20)
-                                  ? "text-yellow-400 fill-yellow-400"
-                                  : "text-muted-foreground/30"
-                                  }`}
-                              />
-                            ))}
-                          </div>
-                          <span className={`text-sm font-bold ${skillCategories[selectedCategory].color === "primary"
-                            ? "text-primary"
-                            : "text-accent"
-                            }`}>
-                            {skill.level}%
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Progress Bar */}
-                      <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{
-                            background: skillCategories[selectedCategory].color === "primary"
-                              ? "var(--gradient-primary)"
-                              : "var(--gradient-accent)"
-                          }}
-                          initial={{ width: 0 }}
-                          whileInView={{ width: `${skill.level}%` }}
-                          viewport={{ once: false }}
-                          transition={{ duration: 0.6, delay: index * 0.1 }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
+                  <span className="text-lg">{category.skills[0]?.icon}</span>
+                  {category.title}
+                </button>
               ))}
             </div>
-          </motion.div>
+          )}
+
+          {/* Selected Skill Tree */}
+          {skillCategories.length > 0 && skillCategories[selectedCategory] && (
+            <motion.div
+              key={selectedCategory}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3 }}
+              className="glass-card p-6"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${skillCategories[selectedCategory].color === "primary"
+                  ? "bg-primary/20"
+                  : "bg-accent/20"
+                  }`}>
+                  <span className="text-xl">{skillCategories[selectedCategory].skills[0]?.icon}</span>
+                </div>
+                <div>
+                  <h3 className="font-display text-lg font-bold text-foreground">
+                    {skillCategories[selectedCategory].title}
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    {skillCategories[selectedCategory].skills.length} abilities unlocked
+                  </span>
+                </div>
+              </div>
+
+              {/* Skills Grid */}
+              <div className="grid gap-4">
+                {skillCategories[selectedCategory].skills.map((skill: any, index: number) => (
+                  <motion.div
+                    key={skill.name}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    onMouseEnter={() => setHoveredSkill(skill.name)}
+                    onMouseLeave={() => setHoveredSkill(null)}
+                    className="group"
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Skill Icon */}
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl shrink-0 transition-all ${hoveredSkill === skill.name
+                        ? "bg-primary/30 scale-110"
+                        : "bg-secondary/50"
+                        }`}>
+                        {skill.icon}
+                      </div>
+
+                      {/* Skill Info */}
+                      <div className="flex-1">
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="font-medium text-foreground group-hover:text-primary transition-colors">
+                            {skill.name}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            {/* Skill Level Stars */}
+                            <div className="flex gap-0.5">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-3 h-3 ${i < Math.floor(skill.level / 20)
+                                    ? "text-yellow-400 fill-yellow-400"
+                                    : "text-muted-foreground/30"
+                                    }`}
+                                />
+                              ))}
+                            </div>
+                            <span className={`text-sm font-bold ${skillCategories[selectedCategory].color === "primary"
+                              ? "text-primary"
+                              : "text-accent"
+                              }`}>
+                              {skill.level}%
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Progress Bar */}
+                        <div className="h-2 bg-secondary/50 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full"
+                            style={{
+                              background: skillCategories[selectedCategory].color === "primary"
+                                ? "var(--gradient-primary)"
+                                : "var(--gradient-accent)"
+                            }}
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${skill.level}%` }}
+                            viewport={{ once: false }}
+                            transition={{ duration: 0.6, delay: index * 0.1 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
 
           {/* Certifications */}
           <motion.div

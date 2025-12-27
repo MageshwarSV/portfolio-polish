@@ -25,18 +25,13 @@ const StoryHero = () => {
   });
 
   // Parallax transforms - Disabled on low-performance devices
-  const opacity = config.enableComplexAnimations
-    ? useTransform(scrollYProgress, [0, 0.5], [1, 0])
-    : useTransform(() => 1);
-  const scale = config.enableComplexAnimations
-    ? useTransform(scrollYProgress, [0, 0.5], [1, 0.9])
-    : useTransform(() => 1);
-  const textY = config.enableComplexAnimations
-    ? useTransform(scrollYProgress, [0, 1], [0, 100])
-    : useTransform(() => 0);
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
+  const textY = useTransform(scrollYProgress, [0, 1], [0, 100]);
 
   // Full name for animation
-  const fullName = personalInfo.name;
+  const fullName = personalInfo.name || defaultPersonalInfo.name;
+  const firstName = personalInfo.firstName || defaultPersonalInfo.firstName || "Mageshwar";
   const nameLetters = fullName.split("");
 
   return (
@@ -108,8 +103,8 @@ const StoryHero = () => {
                 <span className="text-gradient inline-flex flex-wrap">
                   {/* Mobile: Split name into two lines */}
                   <span className="block md:hidden w-full">
-                    <span className="block">Mageshwar</span>
-                    <span className="block">S V</span>
+                    <span className="block">{firstName}</span>
+                    <span className="block">{fullName.replace(firstName, "").trim()}</span>
                   </span>
                   {/* Desktop: Animated letter by letter */}
                   <span className="hidden md:inline-flex md:flex-wrap">

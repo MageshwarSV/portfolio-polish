@@ -15,7 +15,16 @@ import {
   getTechStack, saveTechStack,
   initializeData
 } from '@/lib/portfolioData';
-import { Briefcase, FolderGit2, Code2, User, Settings, LogOut, Plus, Trash2, Save, Star, Award, Trophy, Link2, Mail } from 'lucide-react';
+import { Briefcase, FolderGit2, Code2, User, Settings, LogOut, Plus, Trash2, Save, Star, Award, Trophy, Link2, Mail, Scissors } from 'lucide-react';
+import Cropper from 'react-easy-crop';
+import getCroppedImg from '@/lib/cropImage';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -32,6 +41,13 @@ const AdminDashboard = () => {
   const [chapters, setChapters] = useState<any[]>([]);
   const [techStack, setTechStack] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+
+  // Image Cropping State
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
 
   useEffect(() => {
     document.body.classList.add('admin-panel');
@@ -302,6 +318,32 @@ const AdminDashboard = () => {
       await deleteAllData();
       alert('All data deleted. Page will reload.');
       window.location.reload();
+    }
+  };
+
+  const onCropComplete = (croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleApplyCrop = async () => {
+    try {
+      if (imageToCrop && croppedAreaPixels) {
+        const croppedImage = await getCroppedImg(imageToCrop, croppedAreaPixels);
+        if (croppedImage) {
+          const updatedPersonal = { ...personal, profileImage: croppedImage };
+          setPersonal(updatedPersonal);
+
+          // Save immediately to live site
+          await savePersonalInfo(updatedPersonal);
+          showSavedMessage();
+
+          setIsCropModalOpen(false);
+          setImageToCrop(null);
+        }
+      }
+    } catch (e) {
+      console.error("Error cropping image:", e);
+      alert("Failed to crop image. Please try again.");
     }
   };
 
@@ -1692,7 +1734,10 @@ const AdminDashboard = () => {
 
                           const reader = new FileReader();
                           reader.onloadend = () => {
-                            setPersonal({ ...personal, profileImage: reader.result as string });
+                            setImageToCrop(reader.result as string);
+                            setCrop({ x: 0, y: 0 });
+                            setZoom(1);
+                            setIsCropModalOpen(true);
                           };
                           reader.readAsDataURL(file);
                         }
@@ -1820,6 +1865,64 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Image Crop Modal */}
+      <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>
+        <DialogContent className="max-w-2xl sm:max-w-[500px] bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scissors className="w-5 h-5 text-primary" />
+              Adjust Profile Picture
+            </DialogTitle>
+          </DialogHeader>
+          <div className="relative w-full h-80 bg-background/50 rounded-lg overflow-hidden border border-border mt-4">
+            {imageToCrop && (
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+                cropShape="round"
+                showGrid={true}
+              />
+            )}
+          </div>
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Zoom</span>
+              <span className="text-xs font-mono">{Math.round(zoom * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              value={zoom}
+              min={1}
+              max={3}
+              step={0.1}
+              aria-labelledby="Zoom"
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+          </div>
+          <DialogFooter className="mt-6 flex gap-2">
+            <button
+              onClick={() => setIsCropModalOpen(false)}
+              className="flex-1 px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-secondary transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleApplyCrop}
+              className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+            >
+              <Save className="w-4 h-4" />
+              Apply & Save
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
