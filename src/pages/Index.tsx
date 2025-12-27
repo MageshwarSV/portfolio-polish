@@ -18,7 +18,7 @@ import { usePortfolio } from "@/contexts/PortfolioContext";
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
-  const { loading: dataLoading } = usePortfolio();
+  const { data: portfolioData, loading: dataLoading } = usePortfolio();
   const animationConfig = useAnimationConfig();
 
   // Scroll to top on page load/refresh
@@ -53,9 +53,20 @@ const Index = () => {
     setHasLoadedOnce(true);
   };
 
+  // Pre-calculate if content is ready for background rendering
+  const isDataAvailable = portfolioData !== null;
+
+  // Pre-load assets (like profile image) while the loading animation plays
+  useEffect(() => {
+    if (isDataAvailable && portfolioData.personal?.profileImage) {
+      const img = new Image();
+      img.src = portfolioData.personal.profileImage;
+    }
+  }, [isDataAvailable, portfolioData?.personal?.profileImage]);
+
   return (
     <>
-      {/* Poetic Loading Screen with Quotes - Only on high-performance devices */}
+      {/* Poetic Loading Screen - High Z-index ensures it stays on top */}
       <AnimatePresence>
         {shouldShowLoading && (
           <PoeticLoading
@@ -65,25 +76,34 @@ const Index = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Content - Hidden during loading, don't render until loading complete */}
-      {!shouldShowLoading && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{
-            duration: 0.8 * animationConfig.animationDuration,
-            delay: 0.2 * animationConfig.animationDuration
-          }}
-        >
-          {animationConfig.enableSmoothScroll ? (
-            <SmoothScrollProvider>
-              <PageContent animationConfig={animationConfig} />
-            </SmoothScrollProvider>
-          ) : (
+      {/* Main Content - Rendered early to "pre-read" but kept invisible until ready */}
+      <motion.div
+        className="fixed inset-0 overflow-auto"
+        initial={{ opacity: 0, scale: 1.02, filter: "blur(10px)" }}
+        animate={{
+          opacity: (shouldShowLoading || !isDataAvailable) ? 0 : 1,
+          scale: (shouldShowLoading || !isDataAvailable) ? 1.02 : 1,
+          filter: (shouldShowLoading || !isDataAvailable) ? "blur(10px)" : "blur(0px)"
+        }}
+        transition={{
+          duration: 1.2 * animationConfig.animationDuration,
+          ease: [0.22, 1, 0.36, 1], // Gentle "out" expo ease
+          delay: 0.1
+        }}
+        style={{
+          // Stop pointer events during loading to prevent accidental clicks
+          pointerEvents: shouldShowLoading ? 'none' : 'auto',
+          visibility: isDataAvailable ? 'visible' : 'hidden'
+        }}
+      >
+        {animationConfig.enableSmoothScroll ? (
+          <SmoothScrollProvider>
             <PageContent animationConfig={animationConfig} />
-          )}
-        </motion.div>
-      )}
+          </SmoothScrollProvider>
+        ) : (
+          <PageContent animationConfig={animationConfig} />
+        )}
+      </motion.div>
     </>
   );
 };
