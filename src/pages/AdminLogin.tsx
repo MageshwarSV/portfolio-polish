@@ -52,8 +52,8 @@ const AdminLogin = () => {
 
     // Generate new OTP
     const newOTP = generateOTP();
-    await storeOTP(newOTP);
-    const sent = await sendOTPEmail(forgotEmail, newOTP);
+    await storeOTP(forgotEmail, newOTP);
+    const sent = await sendOTPEmail(forgotEmail, forgotUsername, newOTP);
 
     if (sent) {
       setResendTimer(300); // Reset to 5 minutes
