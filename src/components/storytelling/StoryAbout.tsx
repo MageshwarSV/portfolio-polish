@@ -69,16 +69,16 @@ const StoryAbout = () => {
 
             <div className="relative z-10">
               {/* Profile Header */}
-              <div className="flex items-center gap-6 mb-8">
+              <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-6 mb-8 text-center md:text-left">
                 <motion.div
                   whileHover={{ scale: 1.05, rotate: 3 }}
-                  className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-accent p-1"
+                  className="w-32 h-64 md:w-24 md:h-24 rounded-full md:rounded-2xl bg-gradient-to-br from-primary to-accent p-1 shrink-0"
                 >
-                  <div className="w-full h-full rounded-xl bg-background flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-full rounded-full md:rounded-xl bg-background flex items-center justify-center overflow-hidden">
                     <img
                       src={personalInfo.profileImage}
                       alt={personalInfo.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-center"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
@@ -96,7 +96,7 @@ const StoryAbout = () => {
                     {personalInfo.name}
                   </motion.h3>
                   <p className="text-primary font-medium">{personalInfo.title}</p>
-                  <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-center md:justify-start gap-4 mt-2 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <MapPin className="w-3 h-3" /> {personalInfo.location}
                     </span>
