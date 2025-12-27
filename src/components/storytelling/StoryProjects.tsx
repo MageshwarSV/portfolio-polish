@@ -1,52 +1,20 @@
 import { motion } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { ExternalLink, Github, Star, Download, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ExternalLink, Star, ArrowRight } from "lucide-react";
 import { projects as defaultProjects } from "@/data/storytellingData";
-import { getProjects, initializeData } from "@/lib/portfolioData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
 // App Store Style Projects Section
 const StoryProjects = () => {
+  const { data: portfolioData } = usePortfolio();
   const ref = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const animationConfig = useAnimationConfig();
-  const [projects, setProjects] = useState(defaultProjects);
 
-  useEffect(() => {
-    let lastUpdate = localStorage.getItem('portfolio_last_update');
-
-    const loadData = () => {
-      try {
-        initializeData();
-        const loadedProjects = getProjects();
-        if (loadedProjects && loadedProjects.length > 0) {
-          setProjects(loadedProjects);
-        }
-      } catch (error) {
-        console.error('Error loading projects:', error);
-      }
-    };
-
-    loadData();
-
-    const pollInterval = setInterval(() => {
-      const currentUpdate = localStorage.getItem('portfolio_last_update');
-      if (currentUpdate !== lastUpdate) {
-        lastUpdate = currentUpdate;
-        loadData();
-      }
-    }, 300);
-
-    const handleUpdate = () => loadData();
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
+  // Use data from portfolio context
+  const projects = portfolioData?.projects || defaultProjects;
 
   const categories = [
     { id: "all", label: "All Projects" },
@@ -57,7 +25,7 @@ const StoryProjects = () => {
 
   const filteredProjects = selectedCategory === "all"
     ? projects
-    : projects.filter(p => p.category === selectedCategory);
+    : projects.filter((p: any) => p.category === selectedCategory);
 
   return (
     <section ref={ref} id="projects" className="relative py-24 overflow-hidden">
@@ -115,7 +83,7 @@ const StoryProjects = () => {
 
         {/* Featured Projects (App Store Style) */}
         <div className="grid gap-6 mb-12">
-          {filteredProjects.filter(p => p.featured).map((project, index) => (
+          {filteredProjects.filter((p: any) => p.featured).map((project: any, index: number) => (
             <motion.div
               key={project.id}
               initial={{ opacity: 0, y: 30 }}
@@ -186,7 +154,7 @@ const StoryProjects = () => {
 
                       {/* Features */}
                       <div className="space-y-2 mb-4">
-                        {project.features.slice(0, 3).map((feature, i) => (
+                        {project.features.slice(0, 3).map((feature: string, i: number) => (
                           <div key={i} className="flex items-center gap-2 text-sm text-foreground/80">
                             <span className={`w-1.5 h-1.5 rounded-full ${project.color === "primary" ? "bg-primary" : "bg-accent"
                               }`} />
@@ -197,7 +165,7 @@ const StoryProjects = () => {
 
                       {/* Tags */}
                       <div className="flex flex-wrap gap-2">
-                        {project.tags.map((tag) => (
+                        {project.tags.map((tag: string) => (
                           <span
                             key={tag}
                             className="px-2 py-1 text-xs rounded-md bg-secondary/50 text-muted-foreground"
@@ -227,7 +195,7 @@ const StoryProjects = () => {
           </h3>
 
           <div className="grid md:grid-cols-3 gap-4">
-            {filteredProjects.filter(p => !p.featured).map((project, index) => (
+            {filteredProjects.filter((p: any) => !p.featured).map((project: any, index: number) => (
               <motion.div
                 key={project.id}
                 initial={{ opacity: 0, y: 20 }}

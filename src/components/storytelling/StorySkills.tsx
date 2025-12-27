@@ -1,61 +1,27 @@
 import { motion } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { skillCategories as defaultSkillCategories, certifications as defaultCertifications, achievements as defaultAchievements } from "@/data/storytellingData";
-import { getSkills, getCertifications, getAchievements, initializeData } from "@/lib/portfolioData";
+import {
+  skillCategories as defaultSkillCategories,
+  certifications as defaultCertifications,
+  achievements as defaultAchievements
+} from "@/data/storytellingData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 import { Zap, Star, Trophy, Shield, Award } from "lucide-react";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
 // RPG/Gaming Stats Style Skills Section
 const StorySkills = () => {
+  const { data: portfolioData } = usePortfolio();
   const ref = useRef<HTMLDivElement>(null);
   const [selectedCategory, setSelectedCategory] = useState(0);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [skillCategories, setSkillCategories] = useState(defaultSkillCategories);
-  const [certifications, setCertifications] = useState(defaultCertifications);
-  const [achievements, setAchievements] = useState(defaultAchievements);
+
+  // Use data from portfolio context
+  const skillCategories = portfolioData?.skills || defaultSkillCategories;
+  const certifications = portfolioData?.certifications || defaultCertifications;
+  const achievements = portfolioData?.achievements || defaultAchievements;
+
   const animationConfig = useAnimationConfig();
-
-  useEffect(() => {
-    let lastUpdate = localStorage.getItem('portfolio_last_update');
-
-    const loadData = () => {
-      try {
-        initializeData();
-        const loadedCategories = getSkills();
-        if (loadedCategories && Array.isArray(loadedCategories) && loadedCategories.length > 0) {
-          setSkillCategories(loadedCategories);
-        }
-        const loadedCertifications = getCertifications();
-        if (loadedCertifications && loadedCertifications.length > 0) {
-          setCertifications(loadedCertifications);
-        }
-        const loadedAchievements = getAchievements();
-        if (loadedAchievements && loadedAchievements.length > 0) {
-          setAchievements(loadedAchievements);
-        }
-      } catch (error) {
-        console.error('Error loading skills:', error);
-      }
-    };
-
-    loadData();
-
-    const pollInterval = setInterval(() => {
-      const currentUpdate = localStorage.getItem('portfolio_last_update');
-      if (currentUpdate !== lastUpdate) {
-        lastUpdate = currentUpdate;
-        loadData();
-      }
-    }, 300);
-
-    const handleUpdate = () => loadData();
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
 
   // Calculate age based on birthdate (15-12-2003)
   const birthDate = new Date(2003, 11, 15); // Month is 0-indexed, so 11 = December
@@ -66,7 +32,7 @@ const StorySkills = () => {
     age--;
   }
   const level = age; // Age = Level!
-  
+
   // Calculate XP based on days into current year of life
   const lastBirthday = new Date(today.getFullYear(), 11, 15);
   if (today < lastBirthday) {
@@ -74,7 +40,7 @@ const StorySkills = () => {
   }
   const nextBirthday = new Date(lastBirthday);
   nextBirthday.setFullYear(lastBirthday.getFullYear() + 1);
-  
+
   const totalDaysInYear = Math.floor((nextBirthday.getTime() - lastBirthday.getTime()) / (1000 * 60 * 60 * 24));
   const daysSinceLastBirthday = Math.floor((today.getTime() - lastBirthday.getTime()) / (1000 * 60 * 60 * 24));
   const xpProgress = Math.floor((daysSinceLastBirthday / totalDaysInYear) * 100); // 0-100 based on year progress
@@ -135,7 +101,7 @@ const StorySkills = () => {
                 <div className="text-center">
                   <div className="flex items-center gap-1 text-accent">
                     <Shield className="w-4 h-4" />
-                    <span className="font-bold">{skillCategories.reduce((a, c) => a + c.skills.length, 0)}</span>
+                    <span className="font-bold">{skillCategories.reduce((a: any, c: any) => a + c.skills.length, 0)}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">Abilities</span>
                 </div>
@@ -169,7 +135,7 @@ const StorySkills = () => {
 
           {/* Skill Tree Tabs */}
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-            {skillCategories.map((category, index) => (
+            {skillCategories.map((category: any, index: number) => (
               <button
                 key={`${category.title}-${index}`}
                 onClick={() => setSelectedCategory(index)}
@@ -211,7 +177,7 @@ const StorySkills = () => {
 
             {/* Skills Grid */}
             <div className="grid gap-4">
-              {skillCategories[selectedCategory].skills.map((skill, index) => (
+              {skillCategories[selectedCategory].skills.map((skill: any, index: number) => (
                 <motion.div
                   key={skill.name}
                   initial={{ opacity: 0, x: -20 }}
@@ -293,7 +259,7 @@ const StorySkills = () => {
               Certifications
             </h3>
             <div className="flex flex-wrap gap-2 md:gap-3">
-              {certifications.map((cert, index) => (
+              {certifications.map((cert: any, index: number) => (
                 <motion.div
                   key={cert.title}
                   initial={{ opacity: 0, scale: 0.9 }}
@@ -324,7 +290,7 @@ const StorySkills = () => {
               Achievements Unlocked
             </h3>
             <div className="flex flex-wrap gap-2 md:gap-3">
-              {achievements.map((achievement, index) => (
+              {achievements.map((achievement: any, index: number) => (
                 <motion.div
                   key={achievement.title}
                   initial={{ opacity: 0, scale: 0.9 }}

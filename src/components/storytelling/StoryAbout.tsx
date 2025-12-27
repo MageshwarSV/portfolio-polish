@@ -1,60 +1,21 @@
 import { motion } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { aboutContent as defaultAboutContent, personalInfo as defaultPersonalInfo, certifications as defaultCertifications } from "@/data/storytellingData";
-import { getCertifications, getAboutContent, getPersonalInfo, initializeData } from "@/lib/portfolioData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 import { Code2, Zap, MapPin, Briefcase, GraduationCap, Award, Sparkles, TrendingUp } from "lucide-react";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
 // Spotify Wrapped / Personal Dashboard Style About Section
 const StoryAbout = () => {
+  const { data: portfolioData } = usePortfolio();
   const ref = useRef<HTMLDivElement>(null);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
-  const [aboutContent, setAboutContent] = useState(defaultAboutContent);
-  const [personalInfo, setPersonalInfo] = useState(defaultPersonalInfo);
-  const [certifications, setCertifications] = useState(defaultCertifications);
   const animationConfig = useAnimationConfig();
 
-  useEffect(() => {
-    let lastUpdate = localStorage.getItem('portfolio_last_update');
-
-    const loadData = () => {
-      try {
-        initializeData();
-        const loadedAbout = getAboutContent();
-        if (loadedAbout) {
-          setAboutContent(loadedAbout);
-        }
-        const loadedPersonalInfo = getPersonalInfo();
-        if (loadedPersonalInfo) {
-          setPersonalInfo(loadedPersonalInfo);
-        }
-        const loadedCertifications = getCertifications();
-        if (loadedCertifications && loadedCertifications.length > 0) {
-          setCertifications(loadedCertifications);
-        }
-      } catch (error) {
-        console.error('Error loading about data:', error);
-      }
-    };
-
-    loadData();
-
-    const pollInterval = setInterval(() => {
-      const currentUpdate = localStorage.getItem('portfolio_last_update');
-      if (currentUpdate !== lastUpdate) {
-        lastUpdate = currentUpdate;
-        loadData();
-      }
-    }, 300);
-
-    const handleUpdate = () => loadData();
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
+  // Use data from portfolio context
+  const aboutContent = portfolioData?.about || defaultAboutContent;
+  const personalInfo = portfolioData?.personal || defaultPersonalInfo;
+  const certifications = portfolioData?.certifications || defaultCertifications;
 
   const stats = [
     { label: "Years Building", value: "3+", icon: Code2, color: "from-green-500 to-emerald-500" },
@@ -224,7 +185,7 @@ const StoryAbout = () => {
 
           {/* Highlights Cards */}
           <div className="md:col-span-3 grid md:grid-cols-4 gap-4">
-            {aboutContent.highlights.map((item, index) => (
+            {aboutContent.highlights.map((item: any, index: number) => (
               <motion.div
                 key={item.title}
                 initial={{ opacity: 0, y: 20 }}
@@ -273,7 +234,7 @@ const StoryAbout = () => {
                 <h4 className="font-display font-semibold text-foreground">Certifications</h4>
               </div>
               <div className="flex flex-wrap gap-2">
-                {certifications.map((cert) => (
+                {certifications.map((cert: any) => (
                   <span
                     key={cert.title}
                     className="px-3 py-1 text-xs rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400"

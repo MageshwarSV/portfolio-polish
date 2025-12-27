@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform, useMotionValue, useSpring } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { techStack as defaultTechStack } from "@/data/storytellingData";
-import { getTechStack, initializeData } from "@/lib/portfolioData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 import { useAnimationConfig } from "@/contexts/PerformanceContext";
 
 interface Particle {
@@ -103,46 +103,17 @@ const GlowingOrb = ({
 };
 
 const AIParticles = () => {
+    const { data: portfolioData } = usePortfolio();
     const containerRef = useRef<HTMLDivElement>(null);
     const [particles, setParticles] = useState<Particle[]>([]);
-    const [techStack, setTechStack] = useState(defaultTechStack);
     const mouseX = useMotionValue(0);
     const mouseY = useMotionValue(0);
     const animationConfig = useAnimationConfig();
 
-  useEffect(() => {
-    let lastUpdate = localStorage.getItem('portfolio_last_update');
+    // Use data from portfolio context
+    const techStack = portfolioData?.techstack || defaultTechStack;
 
-    const loadData = () => {
-      try {
-        initializeData();
-        const loadedTechStack = getTechStack();
-        if (loadedTechStack && loadedTechStack.length > 0) {
-          setTechStack(loadedTechStack);
-        }
-      } catch (error) {
-        console.error('Error loading tech stack:', error);
-      }
-    };
-
-    loadData();
-
-    const pollInterval = setInterval(() => {
-      const currentUpdate = localStorage.getItem('portfolio_last_update');
-      if (currentUpdate !== lastUpdate) {
-        lastUpdate = currentUpdate;
-        loadData();
-      }
-    }, 300);
-
-    const handleUpdate = () => loadData();
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);    const springConfig = { damping: 25, stiffness: 100 };
+    const springConfig = { damping: 25, stiffness: 100 };
     const smoothMouseX = useSpring(mouseX, springConfig);
     const smoothMouseY = useSpring(mouseY, springConfig);
 
@@ -151,7 +122,7 @@ const AIParticles = () => {
 
     useEffect(() => {
         const newParticles: Particle[] = [];
-        
+
         // Use particle count from animation config
         const particleCount = animationConfig.particleCount || 20;
 
@@ -169,7 +140,7 @@ const AIParticles = () => {
 
         // Tech label particles - Only show on higher performance devices
         const techLabelCount = particleCount >= 15 ? 6 : particleCount >= 10 ? 3 : 0;
-        techStack.slice(0, techLabelCount).forEach((tech, i) => {
+        techStack.slice(0, techLabelCount).forEach((tech: string, i: number) => {
             newParticles.push({
                 id: 100 + i,
                 x: 10 + (i % 3) * 30 + Math.random() * 10,
@@ -182,13 +153,13 @@ const AIParticles = () => {
         });
 
         setParticles(newParticles);
-    }, [animationConfig.particleCount]);
+    }, [animationConfig.particleCount, techStack]);
 
     useEffect(() => {
         // Only track mouse on non-touch devices (desktop/laptop)
         const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         if (isTouchDevice) return; // Skip mouse tracking on mobile
-        
+
         const handleMouseMove = (e: MouseEvent) => {
             if (containerRef.current) {
                 const rect = containerRef.current.getBoundingClientRect();

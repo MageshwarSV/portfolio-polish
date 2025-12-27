@@ -2,49 +2,17 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
 import { ChevronDown } from "lucide-react";
 import { personalInfo as defaultPersonalInfo } from "@/data/storytellingData";
-import { getPersonalInfo, initializeData } from "@/lib/portfolioData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 import { useAdaptiveAnimation } from "@/hooks/useAdaptiveAnimation";
 
 const StoryHero = () => {
+  const { data: portfolioData } = usePortfolio();
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageError, setImageError] = useState(false);
-  const [personalInfo, setPersonalInfo] = useState(defaultPersonalInfo);
+
+  // Use data from portfolio context
+  const personalInfo = portfolioData?.personal || defaultPersonalInfo;
   const { config, adjustTransition } = useAdaptiveAnimation();
-
-  useEffect(() => {
-    let lastUpdate = localStorage.getItem('portfolio_last_update');
-
-    const loadData = () => {
-      try {
-        initializeData();
-        const loadedInfo = getPersonalInfo();
-        if (loadedInfo) {
-          setPersonalInfo(loadedInfo);
-          setImageError(false);
-        }
-      } catch (error) {
-        console.error('Error loading personal info:', error);
-      }
-    };
-
-    loadData();
-
-    const pollInterval = setInterval(() => {
-      const currentUpdate = localStorage.getItem('portfolio_last_update');
-      if (currentUpdate !== lastUpdate) {
-        lastUpdate = currentUpdate;
-        loadData();
-      }
-    }, 300);
-
-    const handleUpdate = () => loadData();
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
 
   // Reset image error when profileImage changes
   useEffect(() => {
@@ -57,14 +25,14 @@ const StoryHero = () => {
   });
 
   // Parallax transforms - Disabled on low-performance devices
-  const opacity = config.enableComplexAnimations 
-    ? useTransform(scrollYProgress, [0, 0.5], [1, 0]) 
+  const opacity = config.enableComplexAnimations
+    ? useTransform(scrollYProgress, [0, 0.5], [1, 0])
     : useTransform(() => 1);
-  const scale = config.enableComplexAnimations 
-    ? useTransform(scrollYProgress, [0, 0.5], [1, 0.9]) 
+  const scale = config.enableComplexAnimations
+    ? useTransform(scrollYProgress, [0, 0.5], [1, 0.9])
     : useTransform(() => 1);
-  const textY = config.enableComplexAnimations 
-    ? useTransform(scrollYProgress, [0, 1], [0, 100]) 
+  const textY = config.enableComplexAnimations
+    ? useTransform(scrollYProgress, [0, 1], [0, 100])
     : useTransform(() => 0);
 
   // Full name for animation
@@ -210,7 +178,7 @@ const StoryHero = () => {
             className="lg:col-span-2 flex justify-center lg:justify-end"
             initial={{ opacity: 0, scale: config.enableComplexAnimations ? 0.8 : 1, x: config.enableComplexAnimations ? 50 : 0 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
-            transition={config.enableComplexAnimations 
+            transition={config.enableComplexAnimations
               ? { delay: 0.5 * config.animationDuration, duration: 1 * config.animationDuration, type: "spring", bounce: 0.3 }
               : adjustTransition({ delay: 0.5, duration: 0.8 })
             }

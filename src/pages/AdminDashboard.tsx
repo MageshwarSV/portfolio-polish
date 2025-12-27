@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { isAuthenticated, logout } from '@/lib/adminAuth';
-import { 
+import {
   getExperiences, saveExperiences,
   getProjects, saveProjects,
   getSkills, saveSkills,
@@ -35,29 +35,29 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     document.body.classList.add('admin-panel');
-    
+
     if (!isAuthenticated()) {
       navigate('/admin');
       return;
     }
     initializeData();
     loadData();
-    
+
     return () => document.body.classList.remove('admin-panel');
   }, [navigate]);
 
-  const loadData = () => {
-    setExperiences(getExperiences());
-    setProjects(getProjects());
-    setSkills(getSkills());
-    setAbout(getAboutContent());
-    setPersonal(getPersonalInfo());
-    setCertifications(getCertifications());
-    setAchievements(getAchievements());
-    setContactInfo(getContactInfo());
-    setSocials(getSocials());
-    setChapters(getChapters());
-    setTechStack(getTechStack());
+  const loadData = async () => {
+    setExperiences(await getExperiences());
+    setProjects(await getProjects());
+    setSkills(await getSkills());
+    setAbout(await getAboutContent());
+    setPersonal(await getPersonalInfo());
+    setCertifications(await getCertifications());
+    setAchievements(await getAchievements());
+    setContactInfo(await getContactInfo());
+    setSocials(await getSocials());
+    setChapters(await getChapters());
+    setTechStack(await getTechStack());
   };
 
   const handleLogout = () => {
@@ -68,15 +68,15 @@ const AdminDashboard = () => {
   const showSavedMessage = () => {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
-    
+
     // Force a small delay to ensure localStorage writes complete
     setTimeout(() => {
       // Set update timestamp to trigger storage event
       localStorage.setItem('portfolio_last_update', Date.now().toString());
-      
+
       // Trigger custom event for same-tab updates
       window.dispatchEvent(new CustomEvent('portfolio_data_updated'));
-      
+
       // Reload data in admin panel
       loadData();
     }, 50);
@@ -108,8 +108,8 @@ const AdminDashboard = () => {
     setExperiences(experiences.filter((_, i) => i !== index));
   };
 
-  const saveExperiencesData = () => {
-    saveExperiences(experiences);
+  const saveExperiencesData = async () => {
+    await saveExperiences(experiences);
     showSavedMessage();
   };
 
@@ -140,8 +140,8 @@ const AdminDashboard = () => {
     setProjects(projects.filter((_, i) => i !== index));
   };
 
-  const saveProjectsData = () => {
-    saveProjects(projects);
+  const saveProjectsData = async () => {
+    await saveProjects(projects);
     showSavedMessage();
   };
 
@@ -178,8 +178,8 @@ const AdminDashboard = () => {
     setSkills(updated);
   };
 
-  const saveSkillsData = () => {
-    saveSkills(skills);
+  const saveSkillsData = async () => {
+    await saveSkills(skills);
     showSavedMessage();
   };
 
@@ -198,9 +198,9 @@ const AdminDashboard = () => {
     setCertifications(certifications.filter((_, i) => i !== index));
   };
 
-  const saveCertificationsData = () => {
-    saveCertifications(certifications);
-    saveAchievements(achievements);
+  const saveCertificationsData = async () => {
+    await saveCertifications(certifications);
+    await saveAchievements(achievements);
     showSavedMessage();
   };
 
@@ -249,9 +249,9 @@ const AdminDashboard = () => {
     setSocials(socials.filter((_, i) => i !== index));
   };
 
-  const saveContactData = () => {
-    saveContactInfo(contactInfo);
-    saveSocials(socials);
+  const saveContactData = async () => {
+    await saveContactInfo(contactInfo);
+    await saveSocials(socials);
     showSavedMessage();
   };
 
@@ -271,8 +271,8 @@ const AdminDashboard = () => {
     setChapters(chapters.filter((_, i) => i !== index));
   };
 
-  const saveChaptersData = () => {
-    saveChapters(chapters);
+  const saveChaptersData = async () => {
+    await saveChapters(chapters);
     showSavedMessage();
   };
 
@@ -291,15 +291,15 @@ const AdminDashboard = () => {
     setTechStack(techStack.filter((_, i) => i !== index));
   };
 
-  const saveTechStackData = () => {
-    saveTechStack(techStack);
+  const saveTechStackData = async () => {
+    await saveTechStack(techStack);
     showSavedMessage();
   };
 
   // Delete all data
-  const deleteAllData = () => {
+  const handleDeleteAllData = async () => {
     if (confirm('Are you sure you want to delete ALL portfolio data? This cannot be undone!')) {
-      localStorage.clear();
+      await deleteAllData();
       alert('All data deleted. Page will reload.');
       window.location.reload();
     }
@@ -316,7 +316,7 @@ const AdminDashboard = () => {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={deleteAllData}
+              onClick={handleDeleteAllData}
               className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 text-yellow-500 rounded-lg hover:bg-yellow-500/20 transition-colors"
             >
               <Trash2 className="w-4 h-4" />
@@ -359,11 +359,10 @@ const AdminDashboard = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card text-muted-foreground hover:text-foreground border border-border'
-              }`}
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors whitespace-nowrap ${activeTab === tab.id
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-card text-muted-foreground hover:text-foreground border border-border'
+                }`}
             >
               <tab.icon className="w-4 h-4" />
               {tab.label}
@@ -417,12 +416,10 @@ const AdminDashboard = () => {
                 <div className="bg-background/50 px-6 py-4 border-b border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        exp.color === 'accent' ? 'bg-accent/20' : 'bg-primary/20'
-                      }`}>
-                        <Briefcase className={`w-5 h-5 ${
-                          exp.color === 'accent' ? 'text-accent' : 'text-primary'
-                        }`} />
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${exp.color === 'accent' ? 'bg-accent/20' : 'bg-primary/20'
+                        }`}>
+                        <Briefcase className={`w-5 h-5 ${exp.color === 'accent' ? 'text-accent' : 'text-primary'
+                          }`} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-foreground">
@@ -433,11 +430,10 @@ const AdminDashboard = () => {
                         </p>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      exp.period?.includes('Present') 
-                        ? 'bg-green-500/20 text-green-400' 
-                        : 'bg-blue-500/20 text-blue-400'
-                    }`}>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${exp.period?.includes('Present')
+                      ? 'bg-green-500/20 text-green-400'
+                      : 'bg-blue-500/20 text-blue-400'
+                      }`}>
                       {exp.period?.includes('Present') ? '● Active' : '○ Completed'}
                     </span>
                   </div>
@@ -575,12 +571,10 @@ const AdminDashboard = () => {
                 <div className="bg-background/50 px-6 py-4 border-b border-border">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        project.color === 'accent' ? 'bg-accent/20' : 'bg-primary/20'
-                      }`}>
-                        <FolderGit2 className={`w-5 h-5 ${
-                          project.color === 'accent' ? 'text-accent' : 'text-primary'
-                        }`} />
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${project.color === 'accent' ? 'bg-accent/20' : 'bg-primary/20'
+                        }`}>
+                        <FolderGit2 className={`w-5 h-5 ${project.color === 'accent' ? 'text-accent' : 'text-primary'
+                          }`} />
                       </div>
                       <div>
                         <h3 className="font-semibold text-foreground">
@@ -608,8 +602,8 @@ const AdminDashboard = () => {
                     <div className="flex flex-col gap-4">
                       {project.image && (
                         <div className="relative w-full h-48 rounded-lg overflow-hidden border-2 border-border">
-                          <img 
-                            src={project.image} 
+                          <img
+                            src={project.image}
                             alt={project.title}
                             className="w-full h-full object-cover"
                           />
@@ -1516,7 +1510,7 @@ const AdminDashboard = () => {
                   Add Paragraph
                 </button>
               </div>
-              
+
               <div className="space-y-3">
                 {about.story?.map((para: string, index: number) => (
                   <div key={index} className="relative">
@@ -1667,9 +1661,9 @@ const AdminDashboard = () => {
                   {/* Image Preview */}
                   <div className="flex-shrink-0">
                     {personal.profileImage ? (
-                      <img 
-                        src={personal.profileImage} 
-                        alt="Profile" 
+                      <img
+                        src={personal.profileImage}
+                        alt="Profile"
                         className="w-32 h-32 rounded-full object-cover border-4 border-primary/20"
                       />
                     ) : (
@@ -1678,7 +1672,7 @@ const AdminDashboard = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Upload Button */}
                   <div className="flex-1">
                     <label className="block text-sm font-medium text-foreground mb-2">
@@ -1695,7 +1689,7 @@ const AdminDashboard = () => {
                             alert('Image size should be less than 2MB');
                             return;
                           }
-                          
+
                           const reader = new FileReader();
                           reader.onloadend = () => {
                             setPersonal({ ...personal, profileImage: reader.result as string });

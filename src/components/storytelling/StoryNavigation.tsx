@@ -2,56 +2,25 @@ import { motion, useScroll, useTransform } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Menu, X } from "lucide-react";
 import { chapters as defaultChapters } from "@/data/storytellingData";
-import { getChapters, initializeData } from "@/lib/portfolioData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 
 const StoryNavigation = () => {
+  const { data: portfolioData } = usePortfolio();
   const [isOpen, setIsOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
-  const [chapters, setChapters] = useState(defaultChapters);
+
+  // Use data from portfolio context
+  const chapters = portfolioData?.chapters || defaultChapters;
   const { scrollYProgress } = useScroll();
-
-  useEffect(() => {
-    let lastUpdate = localStorage.getItem('portfolio_last_update');
-
-    const loadData = () => {
-      try {
-        initializeData();
-        const loadedChapters = getChapters();
-        if (loadedChapters && loadedChapters.length > 0) {
-          setChapters(loadedChapters);
-        }
-      } catch (error) {
-        console.error('Error loading chapters:', error);
-      }
-    };
-
-    loadData();
-
-    const pollInterval = setInterval(() => {
-      const currentUpdate = localStorage.getItem('portfolio_last_update');
-      if (currentUpdate !== lastUpdate) {
-        lastUpdate = currentUpdate;
-        loadData();
-      }
-    }, 300);
-
-    const handleUpdate = () => loadData();
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
 
   const backgroundOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 1]);
 
   useEffect(() => {
     const handleScroll = () => {
-      const sections = chapters.map(c => document.getElementById(c.id));
+      const sections = chapters.map((c: any) => document.getElementById(c.id));
       const scrollPosition = window.scrollY + 200;
 
-      sections.forEach((section, index) => {
+      sections.forEach((section: any, index: number) => {
         if (section) {
           const sectionTop = section.offsetTop;
           const sectionHeight = section.offsetHeight;
@@ -64,7 +33,7 @@ const StoryNavigation = () => {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [chapters]);
 
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
@@ -103,7 +72,7 @@ const StoryNavigation = () => {
 
             {/* Desktop Links */}
             <div className="hidden md:flex items-center gap-1">
-              {chapters.slice(1).map((chapter) => (
+              {chapters.slice(1).map((chapter: any) => (
                 <motion.button
                   key={chapter.id}
                   onClick={() => scrollToSection(chapter.id)}
@@ -156,7 +125,7 @@ const StoryNavigation = () => {
           className="relative pt-24 px-6"
         >
           <div className="space-y-2">
-            {chapters.map((chapter, index) => (
+            {chapters.map((chapter: any, index: number) => (
               <motion.button
                 key={chapter.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -181,7 +150,7 @@ const StoryNavigation = () => {
 
       {/* Progress Indicator (Side) */}
       <div className="fixed right-6 top-1/2 -translate-y-1/2 z-40 hidden lg:flex flex-col gap-3">
-        {chapters.map((chapter) => (
+        {chapters.map((chapter: any) => (
           <motion.button
             key={chapter.id}
             onClick={() => scrollToSection(chapter.id)}

@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
-import { experiences } from "@/data/storytellingData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 import { Terminal, ChevronRight, Loader2 } from "lucide-react";
 
 // Terminal output line with staggered animation
@@ -40,9 +40,13 @@ const TerminalLine = ({
 };
 
 const StoryExperience = () => {
+    const { data: portfolioData, loading } = usePortfolio();
     const containerRef = useRef<HTMLDivElement>(null);
     const [currentExpIndex, setCurrentExpIndex] = useState(0);
     const [phase, setPhase] = useState<"typing" | "connected" | "output" | "loading_next">("typing");
+
+    // Use data from portfolio or fallback to empty array
+    const experiences = portfolioData?.experiences || [];
 
     // Limit to 4 experiences
     const cards = experiences.slice(0, 4);
@@ -50,6 +54,8 @@ const StoryExperience = () => {
 
     // Animation sequence with proper timing
     useEffect(() => {
+        if (loading || cards.length === 0) return;
+
         setPhase("typing");
 
         const connectedTimer = setTimeout(() => setPhase("connected"), 2000);

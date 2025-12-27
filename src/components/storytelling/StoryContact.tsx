@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Send, Sparkles, Check, AlertCircle, Loader2, MessageCircle, User, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { contactInfo as defaultContactInfo, socials as defaultSocials, personalInfo as defaultPersonalInfo } from "@/data/storytellingData";
-import { getPersonalInfo, getContactInfo, getSocials, initializeData } from "@/lib/portfolioData";
+import { usePortfolio } from "@/contexts/PortfolioContext";
 import emailjs from "@emailjs/browser";
 
 // EmailJS Configuration - Connected to mageshwar.offic@gmail.com
@@ -38,8 +38,8 @@ const ChatMessage = ({
       )}
     </div>
     <div className={`max-w-[80%] px-4 py-3 rounded-2xl ${isBot
-        ? "bg-secondary/50 rounded-tl-none"
-        : "bg-primary text-primary-foreground rounded-tr-none"
+      ? "bg-secondary/50 rounded-tl-none"
+      : "bg-primary text-primary-foreground rounded-tr-none"
       }`}>
       <p className="text-sm">{message}</p>
     </div>
@@ -48,56 +48,16 @@ const ChatMessage = ({
 
 // Chat Interface Style Contact Section
 const StoryContact = () => {
+  const { data: portfolioData } = usePortfolio();
   const ref = useRef(null);
   const [formData, setFormData] = useState({ name: "", email: "", message: "" });
   const [status, setStatus] = useState<FormStatus>("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [chatStarted, setChatStarted] = useState(false);
-  const [personalInfo, setPersonalInfo] = useState(defaultPersonalInfo);
-  const [contactInfo, setContactInfo] = useState(defaultContactInfo);
-  const [socials, setSocials] = useState(defaultSocials);
 
-  useEffect(() => {
-    let lastUpdate = localStorage.getItem('portfolio_last_update');
-
-    const loadData = () => {
-      try {
-        initializeData();
-        const loadedInfo = getPersonalInfo();
-        if (loadedInfo) {
-          setPersonalInfo(loadedInfo);
-        }
-        const loadedContact = getContactInfo();
-        if (loadedContact && loadedContact.length > 0) {
-          setContactInfo(loadedContact);
-        }
-        const loadedSocials = getSocials();
-        if (loadedSocials && loadedSocials.length > 0) {
-          setSocials(loadedSocials);
-        }
-      } catch (error) {
-        console.error('Error loading contact data:', error);
-      }
-    };
-
-    loadData();
-
-    const pollInterval = setInterval(() => {
-      const currentUpdate = localStorage.getItem('portfolio_last_update');
-      if (currentUpdate !== lastUpdate) {
-        lastUpdate = currentUpdate;
-        loadData();
-      }
-    }, 300);
-
-    const handleUpdate = () => loadData();
-    window.addEventListener('portfolio_data_updated', handleUpdate);
-
-    return () => {
-      clearInterval(pollInterval);
-      window.removeEventListener('portfolio_data_updated', handleUpdate);
-    };
-  }, []);
+  // Use data from portfolio context
+  const personalInfo = portfolioData?.personal || defaultPersonalInfo;
+  const socials = portfolioData?.socials || defaultSocials;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -230,7 +190,7 @@ const StoryContact = () => {
 
             {/* Social Links */}
             <div className="flex justify-center gap-4 mt-6">
-              {socials.map((social) => (
+              {socials.map((social: any) => (
                 <motion.a
                   key={social.label}
                   href={social.href}
@@ -353,8 +313,8 @@ const StoryContact = () => {
               <div className="mt-6 pt-6 border-t border-border/30 space-y-3">
                 <p className="text-xs text-muted-foreground text-center">
                   Or reach me directly at{" "}
-                  <a href="mailto:mageshwar.offic@gmail.com" className="text-primary hover:underline">
-                    mageshwar.offic@gmail.com
+                  <a href={`mailto:${personalInfo.email}`} className="text-primary hover:underline">
+                    {personalInfo.email}
                   </a>
                 </p>
                 <div className="flex justify-center">
