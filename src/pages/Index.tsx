@@ -98,10 +98,16 @@ const Index = () => {
       >
         {animationConfig.enableSmoothScroll ? (
           <SmoothScrollProvider>
-            <PageContent animationConfig={animationConfig} />
+            <PageContent
+              key={shouldShowLoading ? 'pre-reading' : 'active-reveal'}
+              animationConfig={animationConfig}
+            />
           </SmoothScrollProvider>
         ) : (
-          <PageContent animationConfig={animationConfig} />
+          <PageContent
+            key={shouldShowLoading ? 'pre-reading' : 'active-reveal'}
+            animationConfig={animationConfig}
+          />
         )}
       </motion.div>
     </>
