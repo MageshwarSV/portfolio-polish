@@ -13,11 +13,22 @@ const iconMap: { [key: string]: any } = {
   youtube: Youtube, globe: Globe, facebook: Facebook, mail: Mail, phone: Phone
 };
 
-const getIcon = (icon: any) => {
-  if (typeof icon === 'string') {
-    return iconMap[icon] || iconMap[icon.toLowerCase()] || Globe;
+const getIcon = (social: any) => {
+  // 1. Try explicit icon name (stored as string)
+  if (social.icon && typeof social.icon === 'string') {
+    return iconMap[social.icon] || iconMap[social.icon.toLowerCase()];
   }
-  return icon; // Already a component
+  // 2. Fallback: Try matching the Label (e.g. "GitHub" -> Github icon)
+  if (social.label) {
+    const cleanLabel = social.label.trim();
+    return iconMap[cleanLabel] || iconMap[cleanLabel.toLowerCase()];
+  }
+  // 3. Last resort: specific check for React component (legacy data)
+  if (social.icon && typeof social.icon !== 'string') {
+    return social.icon;
+  }
+
+  return Globe;
 };
 
 // EmailJS Configuration - Connected to mageshwar.offic@gmail.com
@@ -205,7 +216,7 @@ const StoryContact = () => {
             {/* Social Links */}
             <div className="flex justify-center gap-4 mt-6">
               {socials.map((social: any) => {
-                const IconComponent = getIcon(social.icon);
+                const IconComponent = getIcon(social);
                 return (
                   <motion.a
                     key={social.label}
