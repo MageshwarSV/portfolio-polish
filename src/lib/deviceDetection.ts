@@ -36,20 +36,25 @@ export interface AnimationConfig {
  */
 export const isMobileDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
-  
+
   const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
-  
-  // Check for mobile user agents
-  const mobileRegex = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i;
+
+  // Check for mobile user agents - more specific regex
+  const mobileRegex = /Android|webOS|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i;
   const isMobileUA = mobileRegex.test(userAgent);
-  
-  // Check screen size
+
+  // Specifically detect iPads/Tablets if they are in "Mobile" mode
+  const isTabletUA = /iPad|Android(?!.*Mobile)/i.test(userAgent);
+
+  // Check screen size - focus on small screens for mobile
   const isSmallScreen = window.innerWidth <= 768;
-  
+
   // Check for touch support
   const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-  
-  return isMobileUA || (isSmallScreen && hasTouch);
+
+  // A device is mobile only if it has a mobile UA OR is a small screen with touch
+  // Large touch screens (like Laptops) should NOT be classified as mobile
+  return (isMobileUA && !isTabletUA) || (isSmallScreen && hasTouch);
 };
 
 /**
@@ -57,13 +62,13 @@ export const isMobileDevice = (): boolean => {
  */
 export const isTabletDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
-  
+
   const userAgent = navigator.userAgent || navigator.vendor;
   const isTabletUA = /iPad|Android(?!.*Mobile)/i.test(userAgent);
   const isTabletSize = window.innerWidth > 768 && window.innerWidth <= 1024;
-  const hasTouch = 'ontouchstart' in window;
-  
-  return isTabletUA || (isTabletSize && hasTouch);
+  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  return isTabletUA || (isTabletSize && hasTouch && !isMobileDevice());
 };
 
 /**
@@ -80,7 +85,7 @@ export const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
  */
 export const getScreenSize = (): 'small' | 'medium' | 'large' => {
   if (typeof window === 'undefined') return 'large';
-  
+
   const width = window.innerWidth;
   if (width < 768) return 'small';
   if (width < 1280) return 'medium';
@@ -101,29 +106,29 @@ export const prefersReducedMotion = (): boolean => {
  */
 export const calculatePerformanceScore = (): number => {
   if (typeof window === 'undefined') return 50;
-  
-  let score = 50; // Base score
-  
+
+  let score = 60; // Increased base score for modern web
+
   // CPU cores (navigator.hardwareConcurrency)
   const cores = navigator.hardwareConcurrency || 2;
   if (cores >= 8) score += 20;
   else if (cores >= 4) score += 10;
   else if (cores >= 2) score += 5;
   else score -= 10;
-  
+
   // Memory (if available)
   const memory = (navigator as any).deviceMemory || 4;
   if (memory >= 8) score += 15;
   else if (memory >= 4) score += 10;
   else if (memory >= 2) score += 5;
   else score -= 10;
-  
+
   // Screen resolution
   const pixelRatio = window.devicePixelRatio || 1;
   const screenPixels = window.innerWidth * window.innerHeight * pixelRatio;
-  if (screenPixels > 1920 * 1080 * 2) score -= 10; // High DPI displays need more power
-  else if (screenPixels < 1280 * 720) score += 5; // Low res = better performance
-  
+  // Be less punitive for high-res desktops
+  if (screenPixels > 2560 * 1440 * 2) score -= 5;
+
   // Connection speed
   const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
   if (connection) {
@@ -132,18 +137,19 @@ export const calculatePerformanceScore = (): number => {
     else if (effectiveType === '3g') score += 0;
     else if (effectiveType === '2g' || effectiveType === 'slow-2g') score -= 15;
   }
-  
+
   // Device type penalty
   const deviceType = getDeviceType();
-  if (deviceType === 'mobile') score -= 15;
-  else if (deviceType === 'tablet') score -= 5;
-  
-  // Touch device penalty (usually less powerful)
-  if ('ontouchstart' in window) score -= 5;
-  
+  if (deviceType === 'mobile') score -= 20;
+  else if (deviceType === 'tablet') score -= 10;
+  else if (deviceType === 'desktop') score += 10; // Bonus for desktop
+
+  // Touch device penalty - only apply if it's also a small screen/mobile type
+  if ('ontouchstart' in window && deviceType !== 'desktop') score -= 5;
+
   // Prefer reduced motion penalty
-  if (prefersReducedMotion()) score -= 20;
-  
+  if (prefersReducedMotion()) score -= 30;
+
   // Clamp score between 0-100
   return Math.max(0, Math.min(100, score));
 };
@@ -153,11 +159,11 @@ export const calculatePerformanceScore = (): number => {
  */
 export const getConnectionSpeed = (): 'slow' | 'medium' | 'fast' => {
   if (typeof window === 'undefined') return 'medium';
-  
+
   const connection = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-  
+
   if (!connection) return 'medium';
-  
+
   const effectiveType = connection.effectiveType;
   if (effectiveType === '4g') return 'fast';
   if (effectiveType === '3g') return 'medium';
@@ -169,42 +175,42 @@ export const getConnectionSpeed = (): 'slow' | 'medium' | 'fast' => {
  */
 export const detectGPU = (): { hasGPU: boolean; gpuTier: 'low' | 'medium' | 'high' } => {
   if (typeof window === 'undefined') return { hasGPU: false, gpuTier: 'medium' };
-  
+
   try {
     const canvas = document.createElement('canvas');
     const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    
+
     if (!gl) return { hasGPU: false, gpuTier: 'low' };
-    
+
     const debugInfo = (gl as any).getExtension('WEBGL_debug_renderer_info');
     if (debugInfo) {
       const renderer = (gl as any).getParameter(debugInfo.UNMASKED_RENDERER_WEBGL).toLowerCase();
-      
+
       // High-end GPUs (Adreno 7xx+, Mali G7x+, Apple A15+, Desktop GPUs)
-      if (renderer.includes('adreno (tm) 7') || 
-          renderer.includes('adreno (tm) 8') ||
-          renderer.includes('mali-g7') || 
-          renderer.includes('mali-g8') ||
-          renderer.includes('apple a15') || 
-          renderer.includes('apple a16') ||
-          renderer.includes('apple a17') ||
-          renderer.includes('nvidia') || 
-          renderer.includes('rtx') ||
-          renderer.includes('radeon')) {
+      if (renderer.includes('adreno (tm) 7') ||
+        renderer.includes('adreno (tm) 8') ||
+        renderer.includes('mali-g7') ||
+        renderer.includes('mali-g8') ||
+        renderer.includes('apple a15') ||
+        renderer.includes('apple a16') ||
+        renderer.includes('apple a17') ||
+        renderer.includes('nvidia') ||
+        renderer.includes('rtx') ||
+        renderer.includes('radeon')) {
         return { hasGPU: true, gpuTier: 'high' };
       }
-      
+
       // Mid-range GPUs (Adreno 6xx, Mali G5x/G6x, Apple A12-A14)
-      if (renderer.includes('adreno (tm) 6') || 
-          renderer.includes('mali-g5') || 
-          renderer.includes('mali-g6') ||
-          renderer.includes('apple a12') || 
-          renderer.includes('apple a13') ||
-          renderer.includes('apple a14')) {
+      if (renderer.includes('adreno (tm) 6') ||
+        renderer.includes('mali-g5') ||
+        renderer.includes('mali-g6') ||
+        renderer.includes('apple a12') ||
+        renderer.includes('apple a13') ||
+        renderer.includes('apple a14')) {
         return { hasGPU: true, gpuTier: 'medium' };
       }
     }
-    
+
     // Default: has GPU but unknown tier
     return { hasGPU: true, gpuTier: 'medium' };
   } catch (e) {
@@ -217,7 +223,7 @@ export const detectGPU = (): { hasGPU: boolean; gpuTier: 'low' | 'medium' | 'hig
  */
 export const supportsHighRefreshRate = (): boolean => {
   if (typeof window === 'undefined') return false;
-  
+
   // Check for high refresh rate support
   // Most modern flagships: iPhone 13 Pro+, Samsung S21+, OnePlus 9 Pro+, Pixel 6+
   const isHighRefreshDevice = window.screen && (
@@ -226,7 +232,7 @@ export const supportsHighRefreshRate = (): boolean => {
     // iPad Pro with ProMotion
     (/iPad/i.test(navigator.userAgent) && window.devicePixelRatio >= 2)
   );
-  
+
   return isHighRefreshDevice;
 };
 
@@ -238,7 +244,7 @@ export const getDeviceInfo = (): DeviceInfo => {
   const deviceType = getDeviceType();
   const gpuInfo = detectGPU();
   const highRefreshRate = supportsHighRefreshRate();
-  
+
   return {
     type: deviceType,
     isTouchDevice: 'ontouchstart' in window,
@@ -261,7 +267,7 @@ export const getDeviceInfo = (): DeviceInfo => {
 export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => {
   const info = deviceInfo || getDeviceInfo();
   const { performanceScore, type, prefersReducedMotion: reducedMotion } = info;
-  
+
   // Mobile: Only basic slide and component load animations
   if (type === 'mobile' || type === 'tablet') {
     return {
@@ -276,7 +282,7 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
       useGPUAcceleration: false,
     };
   }
-  
+
   // Desktop/PC: High performance (70+): All features enabled with 120fps if supported
   if (performanceScore >= 70 && !reducedMotion) {
     return {
@@ -291,7 +297,7 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
       useGPUAcceleration: info.hasGPU,
     };
   }
-  
+
   // Desktop/PC: Medium performance (40-69): Reduced features with GPU optimization
   if (performanceScore >= 40 && !reducedMotion) {
     return {
@@ -306,7 +312,7 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
       useGPUAcceleration: info.hasGPU,
     };
   }
-  
+
   // Desktop/PC: Low performance (<40) or reduced motion preference: Minimal animations
   return {
     enableParticles: false,
@@ -326,10 +332,10 @@ export const getAnimationConfig = (deviceInfo?: DeviceInfo): AnimationConfig => 
  */
 export const logDeviceInfo = (): void => {
   if (typeof window === 'undefined') return;
-  
+
   const info = getDeviceInfo();
   const config = getAnimationConfig(info);
-  
+
   console.group('🔍 Device Detection Info');
   console.log('Device Type:', info.type);
   console.log('Screen Size:', info.screenSize);
@@ -344,7 +350,7 @@ export const logDeviceInfo = (): void => {
   console.log('🎮 GPU Tier:', info.gpuTier);
   console.log('📱 High Refresh Rate (120Hz):', info.supportsHighRefreshRate);
   console.groupEnd();
-  
+
   console.group('⚙️ Animation Configuration');
   console.log('Particles:', config.enableParticles);
   console.log('Custom Cursor:', config.enableCustomCursor);
