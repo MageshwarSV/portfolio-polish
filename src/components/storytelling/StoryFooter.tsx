@@ -1,7 +1,21 @@
 import { motion } from "framer-motion";
-import { Heart, ArrowUp, Mail, Terminal, Phone } from "lucide-react";
+import { Heart, ArrowUp, Mail, Terminal, Phone, Github, Linkedin, Twitter, Instagram, Youtube, Globe, Facebook } from "lucide-react";
 import { personalInfo as defaultPersonalInfo, socials as defaultSocials } from "@/data/storytellingData";
 import { usePortfolio } from "@/contexts/PortfolioContext";
+
+// Icon mapping for Firebase data (stored as strings)
+const iconMap: { [key: string]: any } = {
+  Github, Linkedin, Twitter, Instagram, Youtube, Globe, Facebook, Mail, Phone,
+  github: Github, linkedin: Linkedin, twitter: Twitter, instagram: Instagram,
+  youtube: Youtube, globe: Globe, facebook: Facebook, mail: Mail, phone: Phone
+};
+
+const getIcon = (icon: any) => {
+  if (typeof icon === 'string') {
+    return iconMap[icon] || iconMap[icon.toLowerCase()] || Globe;
+  }
+  return icon; // Already a component
+};
 
 const StoryFooter = () => {
   const { data: portfolioData } = usePortfolio();
@@ -51,19 +65,22 @@ const StoryFooter = () => {
 
             {/* Social Links */}
             <div className="flex gap-3">
-              {socials.map((social: any) => (
-                <motion.a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ y: -3, scale: 1.05 }}
-                  className="w-10 h-10 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-all"
-                  aria-label={social.label}
-                >
-                  {social.icon && <social.icon className="w-4 h-4" />}
-                </motion.a>
-              ))}
+              {socials.map((social: any) => {
+                const IconComponent = getIcon(social.icon);
+                return (
+                  <motion.a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ y: -3, scale: 1.05 }}
+                    className="w-10 h-10 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:border-primary/50 hover:text-primary transition-all"
+                    aria-label={social.label}
+                  >
+                    {IconComponent && <IconComponent className="w-4 h-4" />}
+                  </motion.a>
+                )
+              })}
               <motion.a
                 href={`mailto:${personalInfo.email}`}
                 whileHover={{ y: -3, scale: 1.05 }}

@@ -336,7 +336,7 @@ const AdminDashboard = () => {
 
   // Socials functions
   const addSocial = () => {
-    setSocials([...socials, { label: '', href: '' }]);
+    setSocials([...socials, { label: '', href: '', icon: 'Globe' }]);
   };
 
   const updateSocial = (index: number, field: string, value: any) => {
@@ -1371,10 +1371,11 @@ const AdminDashboard = () => {
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
-                        <tr className="border-b border-border">
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">Platform</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold text-muted-foreground">URL</th>
-                          <th className="text-center py-3 px-4 text-sm font-semibold text-muted-foreground">Actions</th>
+                        <tr className="bg-muted/50 text-left">
+                          <th className="py-3 px-4 font-semibold text-sm rounded-tl-lg">Label</th>
+                          <th className="py-3 px-4 font-semibold text-sm">Platform / Icon</th>
+                          <th className="py-3 px-4 font-semibold text-sm">URL</th>
+                          <th className="py-3 px-4 font-semibold text-sm text-center rounded-tr-lg w-24">Action</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1388,6 +1389,23 @@ const AdminDashboard = () => {
                                 placeholder="GitHub"
                                 className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
                               />
+                            </td>
+                            <td className="py-3 px-4">
+                              <select
+                                value={social.icon || 'Globe'}
+                                onChange={(e) => updateSocial(index, 'icon', e.target.value)}
+                                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+                              >
+                                <option value="Github">GitHub</option>
+                                <option value="Linkedin">LinkedIn</option>
+                                <option value="Twitter">Twitter</option>
+                                <option value="Instagram">Instagram</option>
+                                <option value="Youtube">YouTube</option>
+                                <option value="Facebook">Facebook</option>
+                                <option value="Mail">Mail</option>
+                                <option value="Phone">Phone</option>
+                                <option value="Globe">Website (Globe)</option>
+                              </select>
                             </td>
                             <td className="py-3 px-4">
                               <input

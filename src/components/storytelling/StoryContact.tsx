@@ -1,10 +1,24 @@
 import { motion } from "framer-motion";
 import { useRef, useState } from "react";
-import { Send, Sparkles, Check, AlertCircle, Loader2, MessageCircle, User, Bot } from "lucide-react";
+import { Send, Sparkles, Check, AlertCircle, Loader2, MessageCircle, User, Bot, Github, Linkedin, Twitter, Instagram, Youtube, Globe, Facebook, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { contactInfo as defaultContactInfo, socials as defaultSocials, personalInfo as defaultPersonalInfo } from "@/data/storytellingData";
 import { usePortfolio } from "@/contexts/PortfolioContext";
 import emailjs from "@emailjs/browser";
+
+// Icon mapping for Firebase data (stored as strings)
+const iconMap: { [key: string]: any } = {
+  Github, Linkedin, Twitter, Instagram, Youtube, Globe, Facebook, Mail, Phone,
+  github: Github, linkedin: Linkedin, twitter: Twitter, instagram: Instagram,
+  youtube: Youtube, globe: Globe, facebook: Facebook, mail: Mail, phone: Phone
+};
+
+const getIcon = (icon: any) => {
+  if (typeof icon === 'string') {
+    return iconMap[icon] || iconMap[icon.toLowerCase()] || Globe;
+  }
+  return icon; // Already a component
+};
 
 // EmailJS Configuration - Connected to mageshwar.offic@gmail.com
 const EMAILJS_SERVICE_ID = "service_aynrf47";
@@ -190,18 +204,21 @@ const StoryContact = () => {
 
             {/* Social Links */}
             <div className="flex justify-center gap-4 mt-6">
-              {socials.map((social: any) => (
-                <motion.a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  whileHover={{ y: -3, scale: 1.1 }}
-                  className="w-12 h-12 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-center hover:border-primary/50 hover:text-primary transition-all"
-                >
-                  {social.icon && <social.icon className="w-5 h-5" />}
-                </motion.a>
-              ))}
+              {socials.map((social: any) => {
+                const IconComponent = getIcon(social.icon);
+                return (
+                  <motion.a
+                    key={social.label}
+                    href={social.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    whileHover={{ y: -3, scale: 1.1 }}
+                    className="w-12 h-12 rounded-xl bg-secondary/50 border border-border/50 flex items-center justify-center hover:border-primary/50 hover:text-primary transition-all"
+                  >
+                    {IconComponent && <IconComponent className="w-5 h-5" />}
+                  </motion.a>
+                )
+              })}
             </div>
           </motion.div>
 
