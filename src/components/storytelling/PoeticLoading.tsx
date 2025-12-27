@@ -202,8 +202,9 @@ const PoeticLoading = ({ onComplete, isDataReady = true }: { onComplete: () => v
     // Handle completion only when BOTH animation is at last line AND data is ready
     useEffect(() => {
         if (currentLine === quotes.length - 1 && isDataReady && !isComplete) {
-            const finalDelay = isDataReady ? (isMobile ? 600 : 1000) : (isMobile ? 1000 : 1800);
-            const exitDelay = isDataReady ? (isMobile ? 200 : 400) : (isMobile ? 400 : 800);
+            // Ensure last line is readable for at least 2.4s
+            const finalDelay = 2400; // Fixed duration for readability
+            const exitDelay = 600;
 
             const timer = setTimeout(() => {
                 setIsComplete(true);
