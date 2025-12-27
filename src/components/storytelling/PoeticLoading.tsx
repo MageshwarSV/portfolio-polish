@@ -187,25 +187,34 @@ const PoeticLoading = ({ onComplete, isDataReady = true }: { onComplete: () => v
     );
 
     useEffect(() => {
-        // Line transition timing
-        const duration = isMobile ? 1400 : 2100;
+        // Line transition timing - significantly faster if data is already ready (from cache)
+        const baseDuration = isMobile ? 1400 : 2100;
+        const duration = isDataReady ? baseDuration / 2 : baseDuration;
         const timers: NodeJS.Timeout[] = [];
 
+        // Start from the NEXT line to avoid infinite re-render loops
         quotes.forEach((_, index) => {
-            timers.push(setTimeout(() => setCurrentLine(index), index * duration));
+            if (index > currentLine) {
+                timers.push(setTimeout(() => {
+                    setCurrentLine(index);
+                }, (index - currentLine) * duration));
+            }
         });
 
         return () => timers.forEach((t) => clearTimeout(t));
-    }, [isMobile]);
+    }, [isMobile, isDataReady, currentLine]); // Re-run if data becomes ready to speed up remaining quotes
 
     // Handle completion only when BOTH animation is at last line AND data is ready
     useEffect(() => {
         if (currentLine === quotes.length - 1 && isDataReady && !isComplete) {
+            const finalDelay = isDataReady ? (isMobile ? 600 : 1000) : (isMobile ? 1000 : 1800);
+            const exitDelay = isDataReady ? (isMobile ? 200 : 400) : (isMobile ? 400 : 800);
+
             const timer = setTimeout(() => {
                 setIsComplete(true);
                 // Extra short delay before calling parent onComplete to allow exit animation
-                setTimeout(onComplete, isMobile ? 400 : 800);
-            }, isMobile ? 1000 : 1800);
+                setTimeout(onComplete, exitDelay);
+            }, finalDelay);
             return () => clearTimeout(timer);
         }
     }, [currentLine, isDataReady, isComplete, onComplete, isMobile]);
