@@ -1944,6 +1944,26 @@ const AdminDashboard = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Current Company</label>
+                  <input
+                    type="text"
+                    value={personal.currentCompany || ''}
+                    onChange={(e) => setPersonal({ ...personal, currentCompany: e.target.value })}
+                    className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground"
+                    placeholder="WorkBooster AI"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Badge Text (Hero)</label>
+                  <input
+                    type="text"
+                    value={personal.badgeText || ''}
+                    onChange={(e) => setPersonal({ ...personal, badgeText: e.target.value })}
+                    className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground"
+                    placeholder="AI Automation Expert @"
+                  />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Education</label>
                   <input
                     type="text"

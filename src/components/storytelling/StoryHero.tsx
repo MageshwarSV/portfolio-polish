@@ -61,19 +61,16 @@ const StoryHero = () => {
         <div className="grid lg:grid-cols-5 gap-12 items-center">
           {/* Text content - 3 columns */}
           <div className="lg:col-span-3 text-center lg:text-left">
-            {/* Status badge */}
+            {/* Current company badge */}
             <motion.div
-              initial={{ opacity: 0, y: config.enableComplexAnimations ? 20 : 0 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={adjustTransition({ duration: 0.6 })}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/90 backdrop-blur-sm border border-primary/30 mb-8 relative z-10"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={adjustTransition({ delay: 0.1 })}
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/50 border border-secondary mb-8 backdrop-blur-sm"
             >
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-              </span>
-              <span className="text-primary text-sm font-medium">
-                AI Automation Expert @ {personalInfo.currentCompany}
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-sm font-medium text-muted-foreground">
+                {personalInfo.badgeText || "AI Automation Expert @"} {personalInfo.currentCompany || "WorkBooster AI"}
               </span>
             </motion.div>
 

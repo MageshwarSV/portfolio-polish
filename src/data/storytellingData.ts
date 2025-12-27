@@ -17,6 +17,7 @@ export const personalInfo = {
     profileImage: "/assets/profile.jpg",
     education: "B.Tech IT Student",
     currentCompany: "WorkBooster AI",
+    badgeText: "AI Automation Expert @",
 };
 
 // About section with intro paragraphs for storytelling
