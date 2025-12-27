@@ -7,7 +7,7 @@ import emailjs from '@emailjs/browser';
 const EMAILJS_SERVICE_ID = "service_aynrf47";
 const EMAILJS_TEMPLATE_ID = "template_j53xky4";
 const EMAILJS_PUBLIC_KEY = "xF9Mfy6lITPFqxzjc";
-const ADMIN_EMAIL = "avin43137@gmail.com";
+const ADMIN_EMAIL = "mageshwar.offic@gmail.com";
 
 // Session expiry: 2 hours in milliseconds
 const SESSION_EXPIRY_MS = 2 * 60 * 60 * 1000;

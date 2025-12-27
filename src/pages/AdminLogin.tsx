@@ -33,6 +33,38 @@ const AdminLogin = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [forgotError, setForgotError] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+
+  // Timer Countdown Effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
+  const handleResendOTP = async () => {
+    setForgotLoading(true);
+    setForgotError('');
+
+    // Generate new OTP
+    const newOTP = generateOTP();
+    await storeOTP(newOTP);
+    const sent = await sendOTPEmail(forgotEmail, newOTP);
+
+    if (sent) {
+      setResendTimer(300); // Reset to 5 minutes
+      // Optional: Show success message briefly
+      setForgotError('New OTP sent successfully!');
+      setTimeout(() => setForgotError(''), 3000);
+    } else {
+      setForgotError('Failed to resend OTP. Please try again.');
+    }
+    setForgotLoading(false);
+  };
 
   useEffect(() => {
     // Check session expiry on load
@@ -83,6 +115,7 @@ const AdminLogin = () => {
 
         if (sent) {
           setForgotStep('otp');
+          setResendTimer(300); // Start 5 minute timer
         } else {
           setForgotError('Failed to send OTP email. Please try again.');
         }
@@ -250,6 +283,22 @@ const AdminLogin = () => {
                       'Verify OTP'
                     )}
                   </button>
+
+                  <div className="text-center">
+                    {resendTimer > 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Resend OTP in {Math.floor(resendTimer / 60)}:{(resendTimer % 60).toString().padStart(2, '0')}
+                      </p>
+                    ) : (
+                      <button
+                        onClick={handleResendOTP}
+                        disabled={forgotLoading}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Resend OTP
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
 
