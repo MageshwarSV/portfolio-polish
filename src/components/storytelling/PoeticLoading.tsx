@@ -182,9 +182,9 @@ const PoeticLoading = ({ onComplete, isDataReady = true }: { onComplete: () => v
     );
 
     useEffect(() => {
-        // Line transition timing - significantly faster if data is already ready (from cache)
-        const baseDuration = isMobile ? 1400 : 2100;
-        const duration = isDataReady ? baseDuration / 2 : baseDuration;
+        // Line transition timing - CONSISTENT duration to show all quotes
+        const baseDuration = isMobile ? 1800 : 2200; // Slightly longer for readability
+        const duration = baseDuration; // Always use full duration
         const timers: NodeJS.Timeout[] = [];
 
         // Start from the NEXT line to avoid infinite re-render loops
