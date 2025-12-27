@@ -1964,6 +1964,17 @@ const AdminDashboard = () => {
                   />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Badge Color</label>
+                  <select
+                    value={personal.badgeColor || 'primary'}
+                    onChange={(e) => setPersonal({ ...personal, badgeColor: e.target.value })}
+                    className="w-full px-4 py-2 bg-background border border-border rounded-lg text-foreground cursor-pointer"
+                  >
+                    <option value="primary">Theme Primary (Default)</option>
+                    <option value="accent">Theme Accent</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-foreground mb-2">Education</label>
                   <input
                     type="text"

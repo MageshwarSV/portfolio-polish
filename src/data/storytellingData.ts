@@ -18,6 +18,7 @@ export const personalInfo = {
     education: "B.Tech IT Student",
     currentCompany: "WorkBooster AI",
     badgeText: "AI Automation Expert @",
+    badgeColor: "primary", // Options: 'primary' (Green) or 'accent' (Blue)
 };
 
 // About section with intro paragraphs for storytelling

@@ -61,15 +61,17 @@ const StoryHero = () => {
         <div className="grid lg:grid-cols-5 gap-12 items-center">
           {/* Text content - 3 columns */}
           <div className="lg:col-span-3 text-center lg:text-left">
-            {/* Current company badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={adjustTransition({ delay: 0.1 })}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary/50 border border-secondary mb-8 backdrop-blur-sm"
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-background/90 backdrop-blur-sm border ${personalInfo.badgeColor === 'accent' ? 'border-accent/30' : 'border-primary/30'} mb-8 relative z-10`}
             >
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-sm font-medium text-muted-foreground">
+              <span className="relative flex h-2 w-2">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${personalInfo.badgeColor === 'accent' ? 'bg-accent' : 'bg-primary'}`} />
+                <span className={`relative inline-flex rounded-full h-2 w-2 ${personalInfo.badgeColor === 'accent' ? 'bg-accent' : 'bg-primary'}`} />
+              </span>
+              <span className={`text-sm font-medium ${personalInfo.badgeColor === 'accent' ? 'text-accent' : 'text-primary'}`}>
                 {personalInfo.badgeText || "AI Automation Expert @"} {personalInfo.currentCompany || "WorkBooster AI"}
               </span>
             </motion.div>
