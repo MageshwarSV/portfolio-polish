@@ -78,7 +78,7 @@ const Index = () => {
 
       {/* Main Content - Rendered early to "pre-read" but kept invisible until ready */}
       <motion.div
-        className="fixed inset-0 overflow-auto"
+        className="relative w-full overflow-x-hidden"
         initial={{ opacity: 0, scale: 1.02, filter: "blur(10px)" }}
         animate={{
           opacity: (shouldShowLoading || !isDataAvailable) ? 0 : 1,
