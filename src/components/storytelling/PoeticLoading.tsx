@@ -70,7 +70,7 @@ const OrbitRing = ({ size, duration, reverse }: { size: number; duration: number
 const DNAHelix = () => {
     const points = 12;
     return (
-        <div className="absolute left-8 top-1/2 -translate-y-1/2 h-[60%] flex flex-col justify-between opacity-20">
+        <div className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 h-[60%] flex flex-col justify-between opacity-20">
             {[...Array(points)].map((_, i) => (
                 <motion.div
                     key={i}
@@ -98,6 +98,19 @@ const DNAHelix = () => {
         </div>
     );
 };
+
+// ... (skip down to loading text)
+
+{/* Loading text */ }
+<motion.p
+    className="mt-4 text-xs text-muted-foreground font-mono uppercase tracking-widest"
+    animate={{ opacity: [0.3, 0.7, 0.3] }}
+    transition={{ duration: 2, repeat: Infinity }}
+>
+    {currentLine === quotes.length - 1
+        ? (!isDataReady ? "Synchronizing with cloud..." : "Starting Engine...")
+        : (currentLine > 1 ? "Analyzing System Hardware..." : "Initializing Experience...")}
+</motion.p>
 
 // Neural network nodes
 const NeuralNetwork = () => {
@@ -248,16 +261,16 @@ const PoeticLoading = ({ onComplete, isDataReady = true }: { onComplete: () => v
                         </>
                     )}
 
-                    {/* Floating code particles - Only on desktop */}
-                    {!isMobileDevice() && particles.map((particle, i) => (
+                    {/* Floating code particles - Adapted for mobile */}
+                    {particles.map((particle, i) => (
                         <CodeParticle key={i} delay={particle.delay} duration={particle.duration} />
                     ))}
 
-                    {/* DNA Helix on left - Only on desktop */}
-                    {!isMobileDevice() && <DNAHelix />}
+                    {/* DNA Helix on left - Visible on all devices */}
+                    <DNAHelix />
 
-                    {/* Neural network on right - Only on desktop */}
-                    {!isMobileDevice() && <NeuralNetwork />}
+                    {/* Neural network on right - Visible on all devices */}
+                    <NeuralNetwork />
 
                     {/* Orbit rings - Simplified on mobile */}
                     {!isMobileDevice() && (
