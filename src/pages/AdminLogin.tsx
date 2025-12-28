@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   login,
@@ -12,7 +12,9 @@ import {
   verifyOTP,
   updatePassword
 } from '@/lib/adminAuth';
-import { Loader2, Mail, KeyRound, Lock, ArrowLeft, Check } from 'lucide-react';
+import { authenticateByFace, getFaceLogins, loadFaceModels, type AuthResult } from '@/lib/faceAuth';
+import FaceScanner from '@/components/FaceScanner';
+import { Loader2, Mail, KeyRound, Lock, ArrowLeft, Check, ScanFace, KeySquare } from 'lucide-react';
 
 type ForgotPasswordStep = 'email' | 'otp' | 'newPassword' | 'success';
 
@@ -34,6 +36,13 @@ const AdminLogin = () => {
   const [forgotError, setForgotError] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+
+  // Facial Login State
+  const [loginMethod, setLoginMethod] = useState<'select' | 'password' | 'facial'>('select');
+  const [showFaceScanner, setShowFaceScanner] = useState(false);
+  const [faceAttempts, setFaceAttempts] = useState(0);
+  const [faceError, setFaceError] = useState('');
+  const authResultRef = useRef<AuthResult | null>(null);
 
   // Timer Countdown Effect
   useEffect(() => {
@@ -368,71 +377,216 @@ const AdminLogin = () => {
               )}
             </div>
           ) : (
-            /* Login Form */
+            /* Login Section */
             <>
               <div className="text-center mb-8">
                 <h1 className="text-3xl font-bold text-foreground mb-2">Admin Panel</h1>
                 <p className="text-muted-foreground">Portfolio Management System</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="username" className="block text-sm font-medium text-foreground mb-2">
-                    Username
-                  </label>
-                  <input
-                    id="username"
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Enter username"
-                    required
-                  />
-                </div>
+              {/* Login Method Selection */}
+              {loginMethod === 'select' && (
+                <div className="space-y-4">
+                  <p className="text-center text-muted-foreground mb-6">Choose your login method</p>
 
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
-                    Password
-                  </label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
-                    placeholder="Enter password"
-                    required
-                  />
-                </div>
+                  <button
+                    onClick={() => {
+                      setLoginMethod('facial');
+                      setShowFaceScanner(true);
+                      setFaceError('');
+                    }}
+                    className="w-full flex items-center gap-4 p-4 bg-background border border-border rounded-xl hover:border-primary transition-colors group"
+                  >
+                    <div className="p-3 bg-primary/20 rounded-lg group-hover:bg-primary/30 transition-colors">
+                      <ScanFace className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-semibold text-foreground">Facial Recognition</h3>
+                      <p className="text-sm text-muted-foreground">Scan your face to login</p>
+                    </div>
+                  </button>
 
-                {error && (
-                  <div className="bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-3 rounded-lg text-sm">
-                    {error}
+                  <button
+                    onClick={() => setLoginMethod('password')}
+                    className="w-full flex items-center gap-4 p-4 bg-background border border-border rounded-xl hover:border-primary transition-colors group"
+                  >
+                    <div className="p-3 bg-secondary rounded-lg group-hover:bg-secondary/80 transition-colors">
+                      <KeySquare className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="font-semibold text-foreground">Password Login</h3>
+                      <p className="text-sm text-muted-foreground">Use username & password</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {/* Facial Login Error / Fallback */}
+              {loginMethod === 'facial' && !showFaceScanner && faceError && (
+                <div className="space-y-4">
+                  <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-4 rounded-lg text-center">
+                    <ScanFace className="w-8 h-8 mx-auto mb-2" />
+                    <p className="font-medium">{faceError}</p>
+                    {faceAttempts >= 3 ? (
+                      <p className="text-sm mt-2">Maximum attempts reached. Please use password login.</p>
+                    ) : (
+                      <p className="text-sm mt-2">{3 - faceAttempts} attempt(s) remaining</p>
+                    )}
                   </div>
-                )}
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {isLoading ? (
-                    <><Loader2 className="w-5 h-5 animate-spin" /> Logging in...</>
-                  ) : (
-                    'Login'
+                  <div className="flex gap-2">
+                    {faceAttempts < 3 && (
+                      <button
+                        onClick={() => {
+                          setShowFaceScanner(true);
+                          setFaceError('');
+                        }}
+                        className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:opacity-90"
+                      >
+                        Try Again
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setLoginMethod('password');
+                        setFaceError('');
+                        setFaceAttempts(0);
+                      }}
+                      className={`${faceAttempts < 3 ? 'flex-1' : 'w-full'} bg-secondary text-foreground py-3 rounded-lg font-medium hover:opacity-90`}
+                    >
+                      Use Password
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setLoginMethod('select');
+                      setFaceError('');
+                      setFaceAttempts(0);
+                    }}
+                    className="w-full text-muted-foreground text-sm hover:text-foreground"
+                  >
+                    ← Back to login options
+                  </button>
+                </div>
+              )}
+
+              {/* Password Login Form */}
+              {loginMethod === 'password' && (
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div>
+                    <label htmlFor="username" className="block text-sm font-medium text-foreground mb-2">
+                      Username
+                    </label>
+                    <input
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                      placeholder="Enter username"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-foreground mb-2">
+                      Password
+                    </label>
+                    <input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground"
+                      placeholder="Enter password"
+                      required
+                    />
+                  </div>
+
+                  {error && (
+                    <div className="bg-red-500/10 border border-red-500/50 text-red-500 px-4 py-3 rounded-lg text-sm">
+                      {error}
+                    </div>
                   )}
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowForgotPassword(true)}
-                  className="w-full text-primary text-sm hover:underline"
-                >
-                  Forgot Password?
-                </button>
-              </form>
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Logging in...</>
+                    ) : (
+                      'Login'
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="w-full text-primary text-sm hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setLoginMethod('select')}
+                    className="w-full text-muted-foreground text-sm hover:text-foreground"
+                  >
+                    ← Back to login options
+                  </button>
+                </form>
+              )}
             </>
+          )}
+
+          {/* Face Scanner Modal */}
+          {showFaceScanner && (
+            <FaceScanner
+              mode="authenticate"
+              maxAttempts={1}
+              onValidate={async (descriptor) => {
+                const result = await authenticateByFace(descriptor);
+                if (result.success) {
+                  authResultRef.current = result;
+                  return { success: true, message: result.message };
+                }
+                return { success: false, message: result.message || 'Face not recognized' };
+              }}
+              onSuccess={(descriptor) => {
+                setShowFaceScanner(false);
+                const result = authResultRef.current;
+
+                if (result && result.success && result.login) {
+                  const session = {
+                    isLoggedIn: true,
+                    username: result.login.username,
+                    loginTime: Date.now(),
+                    expiryTime: Date.now() + 2 * 60 * 60 * 1000, // 2 hours
+                  };
+                  localStorage.setItem('admin_session', JSON.stringify(session));
+                  navigate('/admin/dashboard');
+                }
+              }}
+              onError={(error) => {
+                setShowFaceScanner(false);
+                const newAttempts = faceAttempts + 1;
+                setFaceAttempts(newAttempts);
+                if (newAttempts >= 3) {
+                  setFaceError('Too many failed attempts!');
+                } else {
+                  setFaceError(error);
+                }
+              }}
+              onCancel={() => {
+                setShowFaceScanner(false);
+                if (faceAttempts === 0) {
+                  setLoginMethod('select');
+                }
+              }}
+            />
           )}
         </div>
 

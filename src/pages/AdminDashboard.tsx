@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { isAuthenticated, logout, checkSessionExpiry, getSessionInfo } from '@/lib/adminAuth';
 import {
   getExperiences, saveExperiences,
@@ -17,7 +18,7 @@ import {
   deleteAllData
 } from '@/lib/portfolioData';
 import { getThemeSettings, saveThemeSettings, defaultThemeSettings, ThemeSettings, applyTheme, resetThemeSettings, getCustomPresets, saveCustomPreset, deleteCustomPreset, CustomPreset } from '@/lib/themeSettings';
-import { Briefcase, FolderGit2, Code2, User, Settings, LogOut, Plus, Trash2, Save, Star, Award, Trophy, Link2, Mail, Scissors, RefreshCw, Cloud, Wifi, Clock, Palette, X } from 'lucide-react';
+import { Briefcase, FolderGit2, Code2, User, Settings, LogOut, Plus, Trash2, Save, Star, Award, Trophy, Link2, Mail, Scissors, RefreshCw, Cloud, Wifi, Clock, Palette, X, Users, ToggleLeft, ToggleRight, Camera, ScanFace } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
 import {
@@ -27,10 +28,19 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import FaceScanner from '@/components/FaceScanner';
+import {
+  getFaceLogins,
+  createFaceLogin,
+  updateFaceDescriptor,
+  updateLoginActiveStatus,
+  deleteFaceLogin,
+  FaceLogin,
+} from '@/lib/faceAuth';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'experiences' | 'projects' | 'skills' | 'about' | 'personal' | 'certifications' | 'contact' | 'navigation' | 'appearance'>('experiences');
+  const [activeTab, setActiveTab] = useState<'experiences' | 'projects' | 'skills' | 'about' | 'personal' | 'certifications' | 'contact' | 'navigation' | 'appearance' | 'logins'>('experiences');
   const [experiences, setExperiences] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
@@ -58,6 +68,19 @@ const AdminDashboard = () => {
   const [customPresets, setCustomPresets] = useState<CustomPreset[]>([]);
   const [presetName, setPresetName] = useState('');
   const [showSavePresetModal, setShowSavePresetModal] = useState(false);
+
+  // Face Login State
+  const [faceLogins, setFaceLogins] = useState<FaceLogin[]>([]);
+  const [showFaceScanner, setShowFaceScanner] = useState(false);
+  const [scanningLoginId, setScanningLoginId] = useState<string | null>(null);
+  const [newLoginUsername, setNewLoginUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showAddLoginModal, setShowAddLoginModal] = useState(false);
+
+  // Radial Menu State
+  const [showRadialMenu, setShowRadialMenu] = useState(false);
+  const [radialMenuKey, setRadialMenuKey] = useState(0);
 
   useEffect(() => {
     document.body.classList.add('admin-panel');
@@ -131,6 +154,7 @@ const AdminDashboard = () => {
     setTechStack(await getTechStack());
     setThemeSettings(await getThemeSettings());
     setCustomPresets(await getCustomPresets());
+    setFaceLogins(await getFaceLogins());
   };
 
   const handleLogout = () => {
@@ -435,94 +459,240 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-sm text-muted-foreground">Portfolio Management</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleManualSync}
-              disabled={isSyncing}
-              className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
-              {isSyncing ? "Syncing..." : "Force Cloud Sync"}
-            </button>
-            {sessionTimeLeft && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg text-sm text-muted-foreground">
-                <Clock className="w-4 h-4" />
-                <span>Session: {sessionTimeLeft}</span>
-              </div>
-            )}
-            <a href="/" target="_blank" className="text-sm text-primary hover:underline">
-              View Live Site
-            </a>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">Admin Dashboard</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground">Portfolio Management</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-4">
+              <button
+                onClick={handleManualSync}
+                disabled={isSyncing}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-50 text-sm"
+              >
+                <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+                <span className="hidden xs:inline">{isSyncing ? "Syncing..." : "Sync"}</span>
+              </button>
+              {sessionTimeLeft && (
+                <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg text-sm text-muted-foreground">
+                  <Clock className="w-4 h-4" />
+                  <span>Session: {sessionTimeLeft}</span>
+                </div>
+              )}
+              <a href="/" target="_blank" className="text-xs sm:text-sm text-primary hover:underline">
+                View Site
+              </a>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors text-sm"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto p-6">
+      <div className="max-w-7xl mx-auto p-3 sm:p-6">
         {/* Save Notification */}
         {saved && (
-          <div className="fixed top-20 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in">
-            ✓ Changes saved successfully!
+          <div className="fixed top-20 right-3 sm:right-6 bg-green-500 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg shadow-lg z-50 animate-fade-in text-sm sm:text-base">
+            ✓ Saved!
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-          {[
-            { id: 'experiences', label: 'Experiences', icon: Briefcase },
-            { id: 'projects', label: 'Projects', icon: FolderGit2 },
-            { id: 'skills', label: 'Skills', icon: Code2 },
-            { id: 'certifications', label: 'Certifications & Awards', icon: Award },
-            { id: 'contact', label: 'Contact & Social', icon: Link2 },
-            { id: 'navigation', label: 'Navigation', icon: Settings },
-            { id: 'about', label: 'About', icon: User },
-            { id: 'personal', label: 'Personal Info', icon: Settings },
-            { id: 'appearance', label: 'Appearance', icon: Palette }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors whitespace-nowrap ${activeTab === tab.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-card text-muted-foreground hover:text-foreground border border-border'
-                }`}
+        {/* Floating Menu Toggle Button (Bottom-Right) - Always rendered, hidden when menu open */}
+        <button
+          onClick={() => { setRadialMenuKey(k => k + 1); setShowRadialMenu(true); }}
+          className={`fixed bottom-6 right-6 z-[60] w-14 h-14 rounded-full flex items-center justify-center shadow-xl bg-gradient-to-br from-primary to-accent text-white transition-all duration-200 hover:scale-110 active:scale-95
+            ${showRadialMenu ? 'opacity-0 pointer-events-none scale-50' : 'opacity-100 pointer-events-auto scale-100'}`}
+        >
+          <Settings className="w-6 h-6" />
+          {!showRadialMenu && <span className="absolute inset-0 rounded-full bg-primary/50 animate-ping" />}
+        </button>
+
+        {/* Fullscreen Animated Radial Menu Modal */}
+        <AnimatePresence>
+          {showRadialMenu && (
+            <motion.div
+              key={`radial-menu-${radialMenuKey}`}
+              className="fixed inset-0 z-50 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
             >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
+              {/* Glassmorphism Backdrop */}
+              <div
+                className="absolute inset-0 bg-background/80 backdrop-blur-xl"
+                onClick={() => setShowRadialMenu(false)}
+              />
+
+              {/* Radial Menu Container */}
+              <motion.div
+                className="relative"
+                style={{ width: 400, height: 400 }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
+                {/* Center Close Button - Spin synced with tabs: 
+                    Last tab at 0.3 + 9*0.5 = 4.8s, so spin for 5s
+                    22 rotations (7920°) over 5s = noticeable spin until last tab */}
+                <motion.button
+                  onClick={() => setShowRadialMenu(false)}
+                  className="absolute z-10 w-20 h-20 rounded-full flex items-center justify-center bg-gradient-to-br from-primary via-primary to-accent text-white shadow-2xl shadow-primary/30"
+                  style={{ left: '50%', top: '50%', marginLeft: -40, marginTop: -40 }}
+                  initial={{ rotate: 0, scale: 0 }}
+                  animate={{ rotate: 10800, scale: 1 }}
+                  transition={{
+                    rotate: { duration: 6, ease: "easeOut" }, // 6s = last tab at 4.8s + ~1s spring settle
+                    scale: { duration: 0.2 }
+                  }}
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <X className="w-8 h-8" />
+                </motion.button>
+
+                {/* Circular Tab Items - synced with rotation */}
+                {[
+                  { id: 'experiences', label: 'Experience', icon: Briefcase, color: 'from-blue-500 to-cyan-400' },
+                  { id: 'projects', label: 'Projects', icon: FolderGit2, color: 'from-emerald-500 to-green-400' },
+                  { id: 'skills', label: 'Skills', icon: Code2, color: 'from-purple-500 to-pink-400' },
+                  { id: 'certifications', label: 'Certs', icon: Award, color: 'from-amber-500 to-yellow-400' },
+                  { id: 'contact', label: 'Contact', icon: Link2, color: 'from-rose-500 to-orange-400' },
+                  { id: 'navigation', label: 'Nav', icon: Settings, color: 'from-slate-400 to-zinc-300' },
+                  { id: 'about', label: 'About', icon: User, color: 'from-indigo-500 to-blue-400' },
+                  { id: 'personal', label: 'Personal', icon: Settings, color: 'from-teal-500 to-cyan-400' },
+                  { id: 'appearance', label: 'Theme', icon: Palette, color: 'from-fuchsia-500 to-pink-400' },
+                  { id: 'logins', label: 'Face ID', icon: ScanFace, color: 'from-red-500 to-rose-400' }
+                ].map((tab, index) => {
+                  const totalTabs = 10;
+                  const anglePerTab = 360 / totalTabs;
+                  const startAngle = -90;
+                  const angle = startAngle + (index * anglePerTab);
+                  const radius = 140;
+                  const angleRad = (angle * Math.PI) / 180;
+                  const x = Math.cos(angleRad) * radius;
+                  const y = Math.sin(angleRad) * radius;
+
+                  // Each tab: 0.3s base + 0.5s per tab
+                  // Last tab (index 9): 0.3 + 4.5 = 4.8s
+                  const tabDelay = 0.3 + (index * 0.5);
+
+                  return (
+                    <motion.button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id as any);
+                        setShowRadialMenu(false);
+                      }}
+                      className={`group absolute flex flex-col items-center justify-center w-16 h-16 rounded-2xl shadow-lg transition-all duration-200
+                        ${activeTab === tab.id
+                          ? `bg-gradient-to-br ${tab.color} text-white ring-2 ring-white/50 shadow-xl`
+                          : `bg-card/90 backdrop-blur-sm border border-border/50 text-muted-foreground hover:text-white hover:border-transparent hover:shadow-xl`
+                        }`}
+                      style={{
+                        left: 200 - 32, // Start at center (will animate to final position)
+                        top: 200 - 32
+                      }}
+                      initial={{
+                        x: 0,
+                        y: 0,
+                        scale: 0.2,
+                        opacity: 0,
+                        rotate: -180
+                      }}
+                      animate={{
+                        x: x, // Fly out to circular position
+                        y: y,
+                        scale: 1,
+                        opacity: 1,
+                        rotate: 0
+                      }}
+                      exit={{
+                        x: 0,
+                        y: 0,
+                        scale: 0.2,
+                        opacity: 0,
+                        rotate: 180
+                      }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 200,
+                        damping: 12, // Lower damping = more bounce/overshoot
+                        mass: 0.8,
+                        delay: tabDelay
+                      }}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      {/* Hover gradient overlay */}
+                      {activeTab !== tab.id && (
+                        <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${tab.color} opacity-0 group-hover:opacity-100 transition-opacity duration-200`} />
+                      )}
+                      <tab.icon className="relative z-10 w-5 h-5 mb-0.5" />
+                      <span className="relative z-10 text-[8px] font-medium leading-tight">{tab.label}</span>
+                    </motion.button>
+                  );
+                })}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Current Tab Indicator Bar - Glassmorphism */}
+        <div className="mb-4 flex items-center gap-3 p-4 bg-card/30 backdrop-blur-xl border border-border/30 rounded-2xl shadow-lg">
+          {(() => {
+            const currentTab = [
+              { id: 'experiences', label: 'Experiences', icon: Briefcase, color: 'from-blue-500 to-cyan-400' },
+              { id: 'projects', label: 'Projects', icon: FolderGit2, color: 'from-emerald-500 to-green-400' },
+              { id: 'skills', label: 'Skills', icon: Code2, color: 'from-purple-500 to-pink-400' },
+              { id: 'certifications', label: 'Certifications & Awards', icon: Award, color: 'from-amber-500 to-yellow-400' },
+              { id: 'contact', label: 'Contact & Social', icon: Link2, color: 'from-rose-500 to-orange-400' },
+              { id: 'navigation', label: 'Navigation', icon: Settings, color: 'from-slate-500 to-zinc-400' },
+              { id: 'about', label: 'About', icon: User, color: 'from-indigo-500 to-blue-400' },
+              { id: 'personal', label: 'Personal Info', icon: Settings, color: 'from-teal-500 to-emerald-400' },
+              { id: 'appearance', label: 'Appearance', icon: Palette, color: 'from-fuchsia-500 to-purple-400' },
+              { id: 'logins', label: 'Face Login', icon: ScanFace, color: 'from-red-500 to-rose-400' }
+            ].find(t => t.id === activeTab);
+            return currentTab && (
+              <>
+                <div className={`p-2.5 rounded-lg bg-gradient-to-br ${currentTab.color}`}>
+                  <currentTab.icon className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-foreground">{currentTab.label}</h2>
+                  <p className="text-xs text-muted-foreground">Click the floating button to switch tabs</p>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {/* Experiences Tab */}
         {activeTab === 'experiences' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-4">
+          <div className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
-                <h2 className="text-xl font-bold text-foreground">Work Experiences</h2>
-                <p className="text-sm text-muted-foreground">Manage your career timeline</p>
+                <h2 className="text-lg sm:text-xl font-bold text-foreground">Work Experiences</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">Manage your career timeline</p>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={addExperience}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Add Experience
                 </button>
                 <button
                   onClick={saveExperiencesData}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:opacity-90"
+                  className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-green-500 text-white rounded-lg hover:opacity-90 text-sm"
                 >
                   <Save className="w-4 h-4" />
                   Save All
@@ -531,12 +701,12 @@ const AdminDashboard = () => {
             </div>
 
             {experiences.length === 0 && (
-              <div className="bg-card border border-border rounded-lg p-12 text-center">
-                <Briefcase className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground mb-4">No experiences yet. Add your first work experience!</p>
+              <div className="bg-card border border-border rounded-lg p-6 sm:p-12 text-center">
+                <Briefcase className="w-10 sm:w-12 h-10 sm:h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground mb-4 text-sm sm:text-base">No experiences yet. Add your first work experience!</p>
                 <button
                   onClick={addExperience}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 text-sm"
                 >
                   <Plus className="w-4 h-4" />
                   Add First Experience
@@ -545,37 +715,54 @@ const AdminDashboard = () => {
             )}
 
             {experiences.map((exp, index) => (
-              <div key={index} className="bg-card border border-border rounded-lg overflow-hidden">
+              <div key={index} className={`bg-card border rounded-lg overflow-hidden ${exp.isActive === false ? 'border-yellow-500/50 opacity-75' : 'border-border'}`}>
                 {/* Header */}
-                <div className="bg-background/50 px-6 py-4 border-b border-border">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${exp.color === 'accent' ? 'bg-accent/20' : 'bg-primary/20'
+                <div className="bg-background/50 px-3 sm:px-6 py-3 sm:py-4 border-b border-border">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${exp.color === 'accent' ? 'bg-accent/20' : 'bg-primary/20'
                         }`}>
-                        <Briefcase className={`w-5 h-5 ${exp.color === 'accent' ? 'text-accent' : 'text-primary'
+                        <Briefcase className={`w-4 h-4 sm:w-5 sm:h-5 ${exp.color === 'accent' ? 'text-accent' : 'text-primary'
                           }`} />
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-foreground">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-foreground text-sm sm:text-base truncate">
                           {exp.title || 'Untitled Role'}
                         </h3>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-xs sm:text-sm text-muted-foreground truncate">
                           {exp.company || 'Company Name'} • {exp.period || 'Period'}
                         </p>
                       </div>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${exp.period?.includes('Present')
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-blue-500/20 text-blue-400'
-                      }`}>
-                      {exp.period?.includes('Present') ? '● Active' : '○ Completed'}
-                    </span>
+                    <div className="flex items-center gap-2 sm:gap-3 ml-10 sm:ml-0">
+                      <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium hidden sm:inline-block ${exp.period?.includes('Present')
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-blue-500/20 text-blue-400'
+                        }`}>
+                        {exp.period?.includes('Present') ? '● Active' : '○ Completed'}
+                      </span>
+                      {/* Active Toggle */}
+                      <button
+                        onClick={() => updateExperience(index, 'isActive', exp.isActive === false ? true : false)}
+                        className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-medium transition-colors ${exp.isActive === false
+                          ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                          : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                          }`}
+                        title={exp.isActive === false ? 'Hidden from live site' : 'Visible on live site'}
+                      >
+                        {exp.isActive === false ? (
+                          <><ToggleLeft className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Hidden</span><span className="sm:hidden">Off</span></>
+                        ) : (
+                          <><ToggleRight className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> <span className="hidden sm:inline">Live</span><span className="sm:hidden">On</span></>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="p-3 sm:p-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-3 sm:mb-4">
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-2">Job Title *</label>
                       <input
@@ -2559,6 +2746,198 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* Logins Tab */}
+      {activeTab === 'logins' && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Face Login Management</h2>
+              <p className="text-sm text-muted-foreground">Manage face recognition logins for admin access</p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setNewLoginUsername('');
+                  setNewEmail('');
+                  setNewPassword('');
+                  setShowAddLoginModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+              >
+                <Plus className="w-4 h-4" />
+                Add Login
+              </button>
+            </div>
+          </div>
+
+
+
+          {faceLogins.length === 0 && (
+            <div className="bg-card border border-border rounded-lg p-12 text-center">
+              <ScanFace className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground mb-4">No face logins configured yet.</p>
+              <p className="text-xs text-muted-foreground">Add a login username above to get started with face recognition.</p>
+            </div>
+          )}
+
+          {faceLogins.map((login) => (
+            <div key={login.id} className={`bg-card border rounded-lg overflow-hidden ${login.isActive === false ? 'border-yellow-500/50 opacity-75' : 'border-border'}`}>
+              <div className="bg-background/50 px-6 py-4 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${login.hasFaceRegistered ? 'bg-green-500/20' : 'bg-secondary'}`}>
+                      <ScanFace className={`w-5 h-5 ${login.hasFaceRegistered ? 'text-green-400' : 'text-muted-foreground'}`} />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-foreground">{login.username}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Created: {new Date(login.createdAt).toLocaleDateString()} •
+                        Last Login: {login.lastLogin ? new Date(login.lastLogin).toLocaleDateString() : 'Never'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${login.hasFaceRegistered ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {login.hasFaceRegistered ? '✓ Face Registered' : '✗ No Face'}
+                    </span>
+                    {/* Active Toggle */}
+                    <button
+                      onClick={async () => {
+                        await updateLoginActiveStatus(login.id, !login.isActive);
+                        setFaceLogins(await getFaceLogins());
+                      }}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${login.isActive === false
+                        ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30'
+                        : 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                        }`}
+                    >
+                      {login.isActive === false ? (
+                        <><ToggleLeft className="w-4 h-4" /> Disabled</>
+                      ) : (
+                        <><ToggleRight className="w-4 h-4" /> Active</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 flex gap-3">
+                <button
+                  onClick={() => {
+                    setScanningLoginId(login.id);
+                    setShowFaceScanner(true);
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+                >
+                  <Camera className="w-4 h-4" />
+                  {login.hasFaceRegistered ? 'Update Face' : 'Register Face'}
+                </button>
+                <button
+                  onClick={async () => {
+                    if (confirm(`Delete login "${login.username}"? This cannot be undone.`)) {
+                      await deleteFaceLogin(login.id);
+                      setFaceLogins(await getFaceLogins());
+                      showSavedMessage();
+                    }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Face Scanner Modal */}
+      {showFaceScanner && scanningLoginId && (
+        <FaceScanner
+          mode="register"
+          onSuccess={async (descriptor) => {
+            const descriptorArray = Array.from(descriptor);
+            await updateFaceDescriptor(scanningLoginId, descriptorArray);
+            setFaceLogins(await getFaceLogins());
+            setShowFaceScanner(false);
+            setScanningLoginId(null);
+            showSavedMessage();
+          }}
+          onError={(error) => {
+            console.error('Face scan error:', error);
+            setShowFaceScanner(false);
+            setScanningLoginId(null);
+          }}
+          onCancel={() => {
+            setShowFaceScanner(false);
+            setScanningLoginId(null);
+          }}
+        />
+      )}
+
+      {/* Add Login Modal */}
+      <Dialog open={showAddLoginModal} onOpenChange={setShowAddLoginModal}>
+        <DialogContent className="max-w-sm bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Create New Login</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Username</label>
+              <input
+                type="text"
+                value={newLoginUsername}
+                onChange={(e) => setNewLoginUsername(e.target.value)}
+                placeholder="Enter username"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Email</label>
+              <input
+                type="email"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="Enter email address"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter password"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <button
+              onClick={() => setShowAddLoginModal(false)}
+              className="px-4 py-2 border border-border rounded-lg text-muted-foreground hover:bg-secondary text-sm"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={async () => {
+                if (newLoginUsername.trim()) {
+                  const id = await createFaceLogin(newLoginUsername.trim(), newEmail.trim(), newPassword);
+                  if (id) {
+                    setFaceLogins(await getFaceLogins());
+                    setShowAddLoginModal(false);
+                    showSavedMessage();
+                  }
+                }
+              }}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 text-sm"
+            >
+              Create Account
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Image Crop Modal */}
       <Dialog open={isCropModalOpen} onOpenChange={setIsCropModalOpen}>

@@ -14,27 +14,36 @@ import {
 } from '@/data/storytellingData';
 
 // Maps icons from local defaults to database data (icons can't be stored in database)
+// Also filters out inactive items (isActive: false) from the live site
 const mapIcons = (rawData: any) => {
     if (!rawData) return null;
 
+    // Helper to filter active items only (isActive !== false means active by default)
+    const filterActive = (items: any[]) =>
+        (items || []).filter((item: any) => item.isActive !== false);
+
     return {
         ...rawData,
-        experiences: (rawData.experiences || []).map((exp: any) => {
+        // Filter and map experiences
+        experiences: filterActive(rawData.experiences || []).map((exp: any) => {
             const defaultExp = defaultExperiences.find(e => e.id === exp.id || e.company === exp.company);
             return { ...exp, icon: defaultExp?.icon || defaultExperiences[0]?.icon };
         }),
-        projects: (rawData.projects || []).map((project: any) => {
+        // Filter and map projects
+        projects: filterActive(rawData.projects || []).map((project: any) => {
             const defaultProject = defaultProjects.find(p => p.id === project.id || p.title === project.title);
             return { ...project, icon: defaultProject?.icon || defaultProjects[0]?.icon };
         }),
         about: rawData.about ? {
             ...rawData.about,
-            highlights: (rawData.about.highlights || []).map((highlight: any, index: number) => {
+            // Filter and map highlights
+            highlights: filterActive(rawData.about.highlights || []).map((highlight: any, index: number) => {
                 const defaultHighlight = defaultAbout.highlights[index];
                 return { ...highlight, icon: defaultHighlight?.icon || defaultAbout.highlights[0]?.icon };
             })
         } : defaultAbout,
-        skills: (rawData.skills || defaultSkills).map((cat: any) => {
+        // Filter and map skills (per category)
+        skills: filterActive(rawData.skills || defaultSkills).map((cat: any) => {
             const defaultCat = defaultSkills.find(c => c.title === cat.title);
             return {
                 ...cat,
@@ -45,14 +54,20 @@ const mapIcons = (rawData: any) => {
             };
         }),
         personal: rawData.personal || defaultPersonalInfo,
-        contact: rawData.contact || [],
-        socials: rawData.socials || [],
-        certifications: rawData.certifications || defaultCertifications,
-        achievements: rawData.achievements || defaultAchievements,
-        chapters: rawData.chapters || defaultChapters,
+        // Filter contact info
+        contact: filterActive(rawData.contact || []),
+        // Filter socials
+        socials: filterActive(rawData.socials || []),
+        // Filter certifications
+        certifications: filterActive(rawData.certifications || defaultCertifications),
+        // Filter achievements
+        achievements: filterActive(rawData.achievements || defaultAchievements),
+        // Filter chapters
+        chapters: filterActive(rawData.chapters || defaultChapters),
         techstack: rawData.techstack || defaultTechStack,
     };
 };
+
 
 export const usePortfolioData = () => {
     const [data, setData] = useState<any>(null);

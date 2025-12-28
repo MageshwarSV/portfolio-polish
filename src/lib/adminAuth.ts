@@ -131,6 +131,35 @@ export const login = async (username: string, password: string): Promise<boolean
       localStorage.setItem('admin_session', JSON.stringify(session));
       return true;
     }
+
+    // Check Face Logins (Secondary Accounts)
+    // Supports login by Username OR Email
+    // Path must match LOGINS_PATH in faceAuth.ts ('admin/logins')
+    const faceLoginsRef = ref(db, 'admin/logins');
+    const snapshot = await get(faceLoginsRef);
+    if (snapshot.exists()) {
+      const logins = snapshot.val();
+      for (const login of Object.values(logins) as any[]) {
+        if (login.isActive !== false) {
+          // Check Username or Email match
+          const isIdentifierMatch = (login.username === username) || (login.email && login.email === username);
+          // Check Password match (Plain text for user created accounts as per current implementation)
+          const isPasswordMatch = (login.password === password);
+
+          if (isIdentifierMatch && isPasswordMatch) {
+            const now = Date.now();
+            const session: AdminSession = {
+              isLoggedIn: true,
+              username: login.username, // Use actual username from DB
+              loginTime: now,
+              expiryTime: now + SESSION_EXPIRY_MS
+            };
+            localStorage.setItem('admin_session', JSON.stringify(session));
+            return true;
+          }
+        }
+      }
+    }
   } catch (error) {
     console.error('Login error:', error);
   }
